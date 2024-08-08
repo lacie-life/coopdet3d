@@ -170,6 +170,7 @@ inference/
 
 # runs
 runs/
+data/tum*
 
 # weights
 *.pth

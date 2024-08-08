@@ -31,7 +31,7 @@ object_classes:
   - PEDESTRIAN
   - BUS
   - MOTORCYCLE
-  - OTHER
+  # - OTHER
   - BICYCLE
   #- EMERGENCY_VEHICLE
 
@@ -77,15 +77,15 @@ train_pipeline:
       prepare: 
         filter_by_difficulty: [-1]
         filter_by_min_points:
-          CAR: 5
-          TRAILER: 5
-          TRUCK: 5
-          VAN: 5
-          PEDESTRIAN: 5
-          BUS: 5
-          MOTORCYCLE: 5
-          OTHER: 5
-          BICYCLE: 5
+          CAR: 0
+          TRAILER: 0
+          TRUCK: 0
+          VAN: 0
+          PEDESTRIAN: 0
+          BUS: 0
+          MOTORCYCLE: 0
+          # OTHER: 5
+          BICYCLE: 0
           #EMERGENCY_VEHICLE: 5
       classes: ${object_classes}
       sample_groups:
@@ -96,7 +96,7 @@ train_pipeline:
         PEDESTRIAN: 7
         BUS: 5
         MOTORCYCLE: 5
-        OTHER: 2
+        # OTHER: 2
         BICYCLE: 7
         #EMERGENCY_VEHICLE: 15
       points_loader:
@@ -294,7 +294,7 @@ test_pipeline:
 
 data:
   samples_per_gpu: 4
-  workers_per_gpu: 4
+  workers_per_gpu: 1
   train:
     type: CBGSDataset
     dataset:

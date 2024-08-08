@@ -28,7 +28,8 @@ model:
       tasks:
         - ["CAR"]
         - ["VAN"]
-        - ["TRUCK", "OTHER"]
+        # - ["TRUCK", "OTHER"]
+        - ["TRUCK"]
         - ["BUS", "TRAILER"]
         - ["PEDESTRIAN"]
         - ["BICYCLE", "MOTORCYCLE"]

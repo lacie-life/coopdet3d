@@ -84,8 +84,9 @@ class TUMTraf2NuScenes(object):
             if split == 'testing':
                 test = True
 
-            #pcd_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south', '*')))
-            pcd_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south_and_north_registered', '*')))
+            pcd_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south', '*')))
+            
+            # pcd_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south_and_north_registered', '*')))
             
             for idx, pcd in enumerate(pcd_list):
                 out_filename = pcd.split('/')
@@ -96,12 +97,18 @@ class TUMTraf2NuScenes(object):
                   
             img_south1_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'images', 's110_camera_basler_south1_8mm', '*')))
             img_south2_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'images', 's110_camera_basler_south2_8mm', '*')))
-            #pcd_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_point_clouds', 's110_lidar_ouster_south', '*')))
-            pcd_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels', 's110_lidar_ouster_south_and_north_registered', '*')))
-            #img_south1_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_images', 's110_camera_basler_south1_8mm', '*')))
-            #img_south2_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_images', 's110_camera_basler_south2_8mm', '*')))
-            img_south1_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels', 's110_lidar_ouster_south_and_north_registered', '*')))
-            img_south2_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels', 's110_lidar_ouster_south_and_north_registered', '*')))
+            
+            pcd_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_point_clouds', 's110_lidar_ouster_south', '*')))
+            # pcd_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels', 's110_lidar_ouster_south_and_north_registered', '*')))
+            
+            # img_south1_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_images', 's110_camera_basler_south1_8mm', '*')))
+            # img_south2_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_images', 's110_camera_basler_south2_8mm', '*')))
+            
+            img_south1_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_point_clouds', 's110_lidar_ouster_south', '*')))
+            img_south2_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_point_clouds', 's110_lidar_ouster_south', '*')))
+
+            # img_south1_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels', 's110_lidar_ouster_south_and_north_registered', '*')))
+            # img_south2_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels', 's110_lidar_ouster_south_and_north_registered', '*')))
 
             infos_list = self._fill_infos(pcd_list, img_south1_list, img_south2_list, pcd_labels_list, img_south1_labels_list, img_south2_labels_list, test)
 
@@ -197,7 +204,7 @@ class TUMTraf2NuScenes(object):
                 "cams": dict(),
                 "lidar2ego": lidar2ego,
                 "timestamp": lidar_anno_frame['frame_properties']['timestamp'],
-                "location": lidar_anno_frame['frame_properties']['point_cloud_file_names'][0].split("_")[2],
+                "location": lidar_anno_frame['frame_properties']['point_cloud_file_name'].split("_")[2],
             }
 
             json2_file = open(img_south1_labels_list[i])

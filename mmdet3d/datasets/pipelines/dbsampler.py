@@ -226,6 +226,7 @@ class DataBaseSampler:
         avoid_coll_boxes = gt_bboxes
         for class_name, sampled_num in zip(self.sample_classes, sample_num_per_class):
             if sampled_num > 0:
+
                 sampled_cls = self.sample_class_v2(
                     class_name, sampled_num, avoid_coll_boxes
                 )
@@ -292,9 +293,14 @@ class DataBaseSampler:
         sampled = copy.deepcopy(sampled)
         num_gt = gt_bboxes.shape[0]
         num_sampled = len(sampled)
+        
+        # print("num_gt", num_gt)
+        # print("num_sampled", num_sampled)
+
         gt_bboxes_bv = box_np_ops.center_to_corner_box2d(
             gt_bboxes[:, 0:2], gt_bboxes[:, 3:5], gt_bboxes[:, 6]
         )
+
         sp_boxes = np.stack([i["box3d_lidar"] for i in sampled], axis=0) # In infra coord
 
         boxes = np.concatenate([gt_bboxes, sp_boxes], axis=0).copy()

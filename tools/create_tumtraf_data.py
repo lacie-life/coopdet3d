@@ -6,7 +6,7 @@ import sys
 
 sys.path.insert(0, osp.join(osp.dirname(osp.abspath(__file__)), '../../..'))
 
-from tools.data_converter.tumtraf_converter import TUMTraf2Nuscenes
+from tools.data_converter.tumtraf_converter import TUMTraf2NuScenes
 from tools.data_converter.create_tumtraf_gt_database import (create_groundtruth_database)
 
 
