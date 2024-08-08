@@ -89,10 +89,13 @@ class TUMTraf2NuScenes(object):
             # pcd_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south_and_north_registered', '*')))
             
             for idx, pcd in enumerate(pcd_list):
+                print(f'Converting {pcd} to .bin')
                 out_filename = pcd.split('/')
-                out_filename = out_filename[8]
+                out_filename = out_filename[-1]
                 out_filename = out_filename[:-4]
+                print(out_filename)
                 self.save_lidar(pcd, os.path.join(self.point_cloud_save_dir, out_filename))
+                print(f'Converting {pcd} to {os.path.join(self.point_cloud_save_dir, out_filename)}.bin')
                 pcd_list[idx] = os.path.join(self.point_cloud_save_dir, out_filename)+'.bin'
                   
             img_south1_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'images', 's110_camera_basler_south1_8mm', '*')))

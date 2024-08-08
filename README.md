@@ -175,6 +175,38 @@ The code is built with following libraries:
 - [nuscenes-dev-kit](https://github.com/nutonomy/nuscenes-devkit)
 - Latest versions of numba, [torchsparse](https://github.com/mit-han-lab/torchsparse), pypcd, and Open3D
 
+
+```bash
+conda create -n lacie-coop python=3.8
+conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch
+
+pip install Pillow==8.4.0
+pip install tqdm
+pip install torchpack
+python -m pip install -U openmim
+
+
+mim install mmengine
+mim install mmcv==1.4.0 
+mim install mmcv-full==1.4.0 
+pip install mmdet==2.20.0
+
+pip install nuscenes-devkit
+pip install mpi4py==3.0.3
+pip install numba==0.48.0
+
+sudo apt-get install libsparsehash-dev
+pip install git+https://github.com/mit-han-lab/torchsparse.git
+
+pip install --upgrade numba
+pip install --upgrade git+https://github.com/klintan/pypcd.git
+pip install open3d
+
+# Note if some error
+pip install setuptools==59.5.0
+pip install yapf==0.40.1
+```
+
 After installing these dependencies, run this command to install the codebase:
 
 ```bash
