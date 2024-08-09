@@ -41,7 +41,7 @@ model:
           inplace: True
         init_cfg:
           type: Pretrained
-          checkpoint: /home/coopdet3d/weights/yolov8_s_syncbn_fast_8xb16-500e_coco_20230117_180101-5aa5f0f1_new.pth
+          checkpoint: /home/lacie/Github/coopdet3d/weights/yolov8_s_syncbn_fast_8xb16-500e_coco_20230117_180101-5aa5f0f1_new.pth
       neck:
         # YOLOv8 n
         #in_channels: [64, 128, 256]
