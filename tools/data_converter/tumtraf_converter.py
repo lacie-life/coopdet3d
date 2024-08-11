@@ -251,7 +251,7 @@ class TUMTraf2NuScenes(object):
             }
             
             # Second camera
-            info["cams"].update({'s110_camera_basler_south2_8mm': img_south2_info})
+            # info["cams"].update({'s110_camera_basler_south2_8mm': img_south2_info})
 
             # obtain annotation
 

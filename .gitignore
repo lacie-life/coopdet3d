@@ -174,4 +174,5 @@ data/tum*
 
 # weights
 *.pth
+/viz_*
 
