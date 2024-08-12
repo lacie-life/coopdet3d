@@ -181,6 +181,10 @@ class TUMTrafNuscDataset(Custom3DDataset):
                 # camera to lidar transform
                 data["camera2lidar"].append(camera_info["sensor2lidar"])
 
+            # print("Using camera data")
+            # print("Number of cameras: ", len(data["image_paths"]))
+            # print("Camera data paths: ", data["image_paths"])
+
         if self.test_mode:
             annos = None
         else:
