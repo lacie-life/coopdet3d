@@ -27,12 +27,12 @@ model:
         nms_thr: 0.075
       tasks:
         - ["CAR"]
-        - ["VAN"]
+        # - ["VAN"]
         # - ["TRUCK", "OTHER"]
-        - ["TRUCK"]
-        - ["BUS", "TRAILER"]
+        # - ["TRUCK"]
+        # - ["BUS", "TRAILER"]
         - ["PEDESTRIAN"]
-        - ["BICYCLE", "MOTORCYCLE"]
+        - ["WHEELER"]
         #- ["CAR"]
         #- ["TRUCK", "VAN"]
         #- ["BUS", "TRAILER"]

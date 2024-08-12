@@ -1,6 +1,6 @@
 dataset_type: TUMTrafNuscDataset
 #dataset_root: data/tumtraf_v2x_cooperative_perception_dataset_processed/
-dataset_root: data/tumtraf_i_processed/
+dataset_root: data/tumtraf_i_v2_lidar_3cls_processed/
 # dataset_root: data/tumtraf_i_mono_processed/
 gt_paste_stop_epoch: -1
 reduce_beams: 32
@@ -24,17 +24,22 @@ augment3d:
   rotate: [-0.78539816, 0.78539816] #Try pi to pi
   translate: 0.5
 
+# object_classes:
+#   - CAR
+#   - TRAILER
+#   - TRUCK
+#   - VAN
+#   - PEDESTRIAN
+#   - BUS
+#   - MOTORCYCLE
+#   # - OTHER
+#   - BICYCLE
+#   #- EMERGENCY_VEHICLE
+
 object_classes:
   - CAR
-  - TRAILER
-  - TRUCK
-  - VAN
+  - WHEELER
   - PEDESTRIAN
-  - BUS
-  - MOTORCYCLE
-  # - OTHER
-  - BICYCLE
-  #- EMERGENCY_VEHICLE
 
 input_modality:
   use_lidar: true
@@ -79,27 +84,14 @@ train_pipeline:
         filter_by_difficulty: [-1]
         filter_by_min_points:
           CAR: 0
-          TRAILER: 0
-          TRUCK: 0
-          VAN: 0
+          WHEELER: 0
           PEDESTRIAN: 0
-          BUS: 0
-          MOTORCYCLE: 0
-          # OTHER: 5
-          BICYCLE: 0
-          #EMERGENCY_VEHICLE: 5
       classes: ${object_classes}
       sample_groups:
         CAR: 2
-        TRAILER: 5
-        TRUCK: 3
-        VAN: 3
+        WHEELER: 5
         PEDESTRIAN: 7
-        BUS: 5
-        MOTORCYCLE: 5
-        # OTHER: 2
-        BICYCLE: 7
-        #EMERGENCY_VEHICLE: 15
+
       points_loader:
         type: LoadPointsFromFile
         coord_type: LIDAR

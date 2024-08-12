@@ -13,3 +13,5 @@ torchpack dist-run -np 1 python tools/visualize.py configs/tumtraf_i/det/centerh
 torchpack dist-run -np 1 python tools/train.py configs/tumtraf_i/det/centerhead/lssfpn/camera/256x704/yolov8/default.yaml --run-dir runs/run_2_cam_rgb_only
 
 torchpack dist-run -np 1 python tools/train.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml --run-dir runs/run_lidar_only
+
+python ./tools/create_tumtraf_data.py --root-path /home/lacie/Github/coopdet3d/data/tumtraf_i_v2 --out-dir /home/lacie/Github/coopdet3d/data/tumtraf_i_v2_processed --splits training,validation

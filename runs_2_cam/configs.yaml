@@ -1,0 +1,1140 @@
+augment2d:
+  gridmask:
+    fixed_prob: true
+    prob: 0.0
+  resize:
+  - - 0.38
+    - 0.55
+  - - 0.48
+    - 0.48
+  rotate:
+  - -5.4
+  - 5.4
+augment3d:
+  rotate:
+  - -0.3925
+  - 0.3925
+  scale:
+  - 0.95
+  - 1.05
+  translate: 0
+checkpoint_config:
+  interval: 1
+  max_keep_ckpts: 3
+cudnn_benchmark: false
+data:
+  samples_per_gpu: 4
+  test:
+    ann_file: data/tumtraf_i_processed/tumtraf_nusc_infos_test.pkl
+    box_type_3d: LiDAR
+    dataset_root: data/tumtraf_i_processed/
+    modality:
+      use_camera: true
+      use_external: false
+      use_lidar: true
+      use_map: false
+      use_radar: false
+    object_classes:
+    - CAR
+    - TRAILER
+    - TRUCK
+    - VAN
+    - PEDESTRIAN
+    - BUS
+    - MOTORCYCLE
+    - BICYCLE
+    pipeline:
+    - to_float32: true
+      type: LoadMultiViewImageFromFiles
+    - coord_type: LIDAR
+      load_augmented: null
+      load_dim: 5
+      reduce_beams: 32
+      type: LoadPointsFromFile
+      use_dim: 5
+    - load_augmented: null
+      load_dim: 5
+      pad_empty_sweeps: true
+      reduce_beams: 32
+      remove_close: true
+      sweeps_num: 0
+      type: LoadPointsFromMultiSweeps
+      use_dim: 5
+    - bot_pct_lim:
+      - 0.0
+      - 0.0
+      final_dim:
+      - 256
+      - 704
+      is_train: false
+      rand_flip: false
+      resize_lim:
+      - 0.48
+      - 0.48
+      rot_lim:
+      - 0.0
+      - 0.0
+      type: ImageAug3D
+    - is_train: false
+      resize_lim:
+      - 1.0
+      - 1.0
+      rot_lim:
+      - 0.0
+      - 0.0
+      trans_lim: 0.0
+      type: GlobalRotScaleTrans
+    - point_cloud_range:
+      - -75.0
+      - -75.0
+      - -8
+      - 75.0
+      - 75.0
+      - 0
+      type: PointsRangeFilter
+    - mean:
+      - 0.485
+      - 0.456
+      - 0.406
+      std:
+      - 0.229
+      - 0.224
+      - 0.225
+      type: ImageNormalize
+    - classes:
+      - CAR
+      - TRAILER
+      - TRUCK
+      - VAN
+      - PEDESTRIAN
+      - BUS
+      - MOTORCYCLE
+      - BICYCLE
+      type: DefaultFormatBundle3D
+    - keys:
+      - img
+      - points
+      meta_keys:
+      - camera_intrinsics
+      - camera2ego
+      - lidar2ego
+      - lidar2camera
+      - camera2lidar
+      - lidar2image
+      - img_aug_matrix
+      - lidar_aug_matrix
+      type: Collect3D
+    test_mode: true
+    type: TUMTrafNuscDataset
+  train:
+    dataset:
+      ann_file: data/tumtraf_i_processed/tumtraf_nusc_infos_train.pkl
+      box_type_3d: LiDAR
+      dataset_root: data/tumtraf_i_processed/
+      modality:
+        use_camera: true
+        use_external: false
+        use_lidar: true
+        use_map: false
+        use_radar: false
+      object_classes:
+      - CAR
+      - TRAILER
+      - TRUCK
+      - VAN
+      - PEDESTRIAN
+      - BUS
+      - MOTORCYCLE
+      - BICYCLE
+      pipeline:
+      - to_float32: true
+        type: LoadMultiViewImageFromFiles
+      - coord_type: LIDAR
+        load_augmented: null
+        load_dim: 5
+        reduce_beams: 32
+        type: LoadPointsFromFile
+        use_dim: 5
+      - load_augmented: null
+        load_dim: 5
+        pad_empty_sweeps: true
+        reduce_beams: 32
+        remove_close: true
+        sweeps_num: 0
+        type: LoadPointsFromMultiSweeps
+        use_dim: 5
+      - type: LoadAnnotations3D
+        with_attr_label: false
+        with_bbox_3d: true
+        with_label_3d: true
+      - db_sampler:
+          classes:
+          - CAR
+          - TRAILER
+          - TRUCK
+          - VAN
+          - PEDESTRIAN
+          - BUS
+          - MOTORCYCLE
+          - BICYCLE
+          dataset_root: data/tumtraf_i_processed/
+          info_path: data/tumtraf_i_processed/tumtraf_nusc_dbinfos_train.pkl
+          points_loader:
+            coord_type: LIDAR
+            load_dim: 5
+            reduce_beams: 32
+            type: LoadPointsFromFile
+            use_dim: 5
+          prepare:
+            filter_by_difficulty:
+            - -1
+            filter_by_min_points:
+              BICYCLE: 0
+              BUS: 0
+              CAR: 0
+              MOTORCYCLE: 0
+              PEDESTRIAN: 0
+              TRAILER: 0
+              TRUCK: 0
+              VAN: 0
+          rate: 1.0
+          sample_groups:
+            BICYCLE: 7
+            BUS: 5
+            CAR: 2
+            MOTORCYCLE: 5
+            PEDESTRIAN: 7
+            TRAILER: 5
+            TRUCK: 3
+            VAN: 3
+        stop_epoch: -1
+        type: ObjectPaste
+      - bot_pct_lim:
+        - 0.0
+        - 0.0
+        final_dim:
+        - 256
+        - 704
+        is_train: true
+        rand_flip: true
+        resize_lim:
+        - 0.38
+        - 0.55
+        rot_lim:
+        - -5.4
+        - 5.4
+        type: ImageAug3D
+      - is_train: true
+        resize_lim:
+        - 0.95
+        - 1.05
+        rot_lim:
+        - -0.3925
+        - 0.3925
+        trans_lim: 0
+        type: GlobalRotScaleTrans
+      - type: RandomFlip3D
+      - point_cloud_range:
+        - -75.0
+        - -75.0
+        - -8
+        - 75.0
+        - 75.0
+        - 0
+        type: PointsRangeFilter
+      - point_cloud_range:
+        - -75.0
+        - -75.0
+        - -8
+        - 75.0
+        - 75.0
+        - 0
+        type: ObjectRangeFilter
+      - classes:
+        - CAR
+        - TRAILER
+        - TRUCK
+        - VAN
+        - PEDESTRIAN
+        - BUS
+        - MOTORCYCLE
+        - BICYCLE
+        type: ObjectNameFilter
+      - mean:
+        - 0.485
+        - 0.456
+        - 0.406
+        std:
+        - 0.229
+        - 0.224
+        - 0.225
+        type: ImageNormalize
+      - fixed_prob: true
+        max_epoch: 20
+        mode: 1
+        offset: false
+        prob: 0.0
+        ratio: 0.5
+        rotate: 1
+        type: GridMask
+        use_h: true
+        use_w: true
+      - type: PointShuffle
+      - classes:
+        - CAR
+        - TRAILER
+        - TRUCK
+        - VAN
+        - PEDESTRIAN
+        - BUS
+        - MOTORCYCLE
+        - BICYCLE
+        type: DefaultFormatBundle3D
+      - keys:
+        - img
+        - points
+        - gt_bboxes_3d
+        - gt_labels_3d
+        meta_keys:
+        - camera_intrinsics
+        - camera2ego
+        - lidar2ego
+        - lidar2camera
+        - camera2lidar
+        - lidar2image
+        - img_aug_matrix
+        - lidar_aug_matrix
+        type: Collect3D
+      test_mode: false
+      type: TUMTrafNuscDataset
+      use_valid_flag: true
+    type: CBGSDataset
+  val:
+    ann_file: data/tumtraf_i_processed/tumtraf_nusc_infos_val.pkl
+    box_type_3d: LiDAR
+    dataset_root: data/tumtraf_i_processed/
+    modality:
+      use_camera: true
+      use_external: false
+      use_lidar: true
+      use_map: false
+      use_radar: false
+    object_classes:
+    - CAR
+    - TRAILER
+    - TRUCK
+    - VAN
+    - PEDESTRIAN
+    - BUS
+    - MOTORCYCLE
+    - BICYCLE
+    pipeline:
+    - to_float32: true
+      type: LoadMultiViewImageFromFiles
+    - coord_type: LIDAR
+      load_augmented: null
+      load_dim: 5
+      reduce_beams: 32
+      type: LoadPointsFromFile
+      use_dim: 5
+    - load_augmented: null
+      load_dim: 5
+      pad_empty_sweeps: true
+      reduce_beams: 32
+      remove_close: true
+      sweeps_num: 0
+      type: LoadPointsFromMultiSweeps
+      use_dim: 5
+    - type: LoadAnnotations3D
+      with_attr_label: false
+      with_bbox_3d: true
+      with_label_3d: true
+    - bot_pct_lim:
+      - 0.0
+      - 0.0
+      final_dim:
+      - 256
+      - 704
+      is_train: false
+      rand_flip: false
+      resize_lim:
+      - 0.48
+      - 0.48
+      rot_lim:
+      - 0.0
+      - 0.0
+      type: ImageAug3D
+    - is_train: false
+      resize_lim:
+      - 1.0
+      - 1.0
+      rot_lim:
+      - 0.0
+      - 0.0
+      trans_lim: 0.0
+      type: GlobalRotScaleTrans
+    - point_cloud_range:
+      - -75.0
+      - -75.0
+      - -8
+      - 75.0
+      - 75.0
+      - 0
+      type: PointsRangeFilter
+    - mean:
+      - 0.485
+      - 0.456
+      - 0.406
+      std:
+      - 0.229
+      - 0.224
+      - 0.225
+      type: ImageNormalize
+    - classes:
+      - CAR
+      - TRAILER
+      - TRUCK
+      - VAN
+      - PEDESTRIAN
+      - BUS
+      - MOTORCYCLE
+      - BICYCLE
+      type: DefaultFormatBundle3D
+    - keys:
+      - img
+      - points
+      - gt_bboxes_3d
+      - gt_labels_3d
+      meta_keys:
+      - camera_intrinsics
+      - camera2ego
+      - lidar2ego
+      - lidar2camera
+      - camera2lidar
+      - lidar2image
+      - img_aug_matrix
+      - lidar_aug_matrix
+      type: Collect3D
+    test_mode: false
+    type: TUMTrafNuscDataset
+  workers_per_gpu: 1
+dataset_root: data/tumtraf_i_processed/
+dataset_type: TUMTrafNuscDataset
+deterministic: false
+evaluation:
+  interval: 1
+  pipeline:
+  - to_float32: true
+    type: LoadMultiViewImageFromFiles
+  - coord_type: LIDAR
+    load_augmented: null
+    load_dim: 5
+    reduce_beams: 32
+    type: LoadPointsFromFile
+    use_dim: 5
+  - load_augmented: null
+    load_dim: 5
+    pad_empty_sweeps: true
+    reduce_beams: 32
+    remove_close: true
+    sweeps_num: 0
+    type: LoadPointsFromMultiSweeps
+    use_dim: 5
+  - bot_pct_lim:
+    - 0.0
+    - 0.0
+    final_dim:
+    - 256
+    - 704
+    is_train: false
+    rand_flip: false
+    resize_lim:
+    - 0.48
+    - 0.48
+    rot_lim:
+    - 0.0
+    - 0.0
+    type: ImageAug3D
+  - is_train: false
+    resize_lim:
+    - 1.0
+    - 1.0
+    rot_lim:
+    - 0.0
+    - 0.0
+    trans_lim: 0.0
+    type: GlobalRotScaleTrans
+  - point_cloud_range:
+    - -75.0
+    - -75.0
+    - -8
+    - 75.0
+    - 75.0
+    - 0
+    type: PointsRangeFilter
+  - mean:
+    - 0.485
+    - 0.456
+    - 0.406
+    std:
+    - 0.229
+    - 0.224
+    - 0.225
+    type: ImageNormalize
+  - classes:
+    - CAR
+    - TRAILER
+    - TRUCK
+    - VAN
+    - PEDESTRIAN
+    - BUS
+    - MOTORCYCLE
+    - BICYCLE
+    type: DefaultFormatBundle3D
+  - keys:
+    - img
+    - points
+    meta_keys:
+    - camera_intrinsics
+    - camera2ego
+    - lidar2ego
+    - lidar2camera
+    - camera2lidar
+    - lidar2image
+    - img_aug_matrix
+    - lidar_aug_matrix
+    type: Collect3D
+fp16:
+  loss_scale:
+    growth_interval: 2000
+gt_paste_stop_epoch: -1
+image_size:
+- 256
+- 704
+input_modality:
+  use_camera: true
+  use_external: false
+  use_lidar: true
+  use_map: false
+  use_radar: false
+load_augmented: null
+load_dim: 5
+load_from: null
+log_config:
+  hooks:
+  - type: TextLoggerHook
+  - type: TensorboardLoggerHook
+  interval: 50
+lr_config:
+  cyclic_times: 1
+  policy: cyclic
+  step_ratio_up: 0.4
+  target_ratio: 5.0
+max_epochs: 20
+model:
+  decoder:
+    backbone:
+      blocks:
+      - - 2
+        - 128
+        - 2
+      - - 2
+        - 256
+        - 2
+      - - 2
+        - 512
+        - 1
+      in_channels: 80
+      type: GeneralizedResNet
+    neck:
+      in_channels:
+      - 512
+      - 128
+      in_indices:
+      - -1
+      - 0
+      out_channels: 256
+      scale_factor: 2
+      type: LSSFPN
+  encoders:
+    camera:
+      backbone:
+        act_cfg:
+          inplace: true
+          type: SiLU
+        arch: P5
+        deepen_factor: 0.33
+        init_cfg:
+          checkpoint: /home/lacie/Github/coopdet3d/weights/yolov8_s_syncbn_fast_8xb16-500e_coco_20230117_180101-5aa5f0f1_new.pth
+          type: Pretrained
+        last_stage_out_channels: 1024
+        norm_cfg:
+          eps: 0.001
+          momentum: 0.03
+          type: BN
+        type: YOLOv8CSPDarknet
+        widen_factor: 0.5
+      neck:
+        act_cfg:
+          inplace: true
+          type: ReLU
+        in_channels:
+        - 128
+        - 256
+        - 512
+        norm_cfg:
+          requires_grad: true
+          type: BN2d
+        num_outs: 3
+        out_channels: 256
+        start_level: 0
+        type: GeneralizedLSSFPN
+        upsample_cfg:
+          align_corners: false
+          mode: bilinear
+      vtransform:
+        dbound:
+        - 1.0
+        - 60.0
+        - 0.5
+        downsample: 2
+        feature_size:
+        - 32
+        - 88
+        image_size:
+        - 256
+        - 704
+        in_channels: 256
+        out_channels: 80
+        type: LSSTransform
+        xbound:
+        - -75.0
+        - 75.0
+        - 0.3
+        ybound:
+        - -75.0
+        - 75.0
+        - 0.3
+        zbound:
+        - -10.0
+        - 10.0
+        - 20.0
+    lidar: null
+  fuser: null
+  heads:
+    map: null
+    object:
+      bbox_coder:
+        code_size: 9
+        max_num: 500
+        out_size_factor: 8
+        pc_range:
+        - -75.0
+        - -75.0
+        - -8
+        - 75.0
+        - 75.0
+        - 0
+        post_center_range:
+        - -85.0
+        - -85.0
+        - -10.0
+        - 85.0
+        - 85.0
+        - 10.0
+        score_threshold: 0.1
+        type: CenterPointBBoxCoder
+        voxel_size:
+        - 0.075
+        - 0.075
+      common_heads:
+        dim:
+        - 3
+        - 2
+        height:
+        - 1
+        - 2
+        reg:
+        - 2
+        - 2
+        rot:
+        - 2
+        - 2
+        vel:
+        - 2
+        - 2
+      in_channels: 256
+      loss_bbox:
+        loss_weight: 0.25
+        reduction: mean
+        type: L1Loss
+      loss_cls:
+        reduction: mean
+        type: GaussianFocalLoss
+      norm_bbox: true
+      separate_head:
+        final_kernel: 3
+        init_bias: -2.19
+        type: SeparateHead
+      share_conv_channel: 64
+      tasks:
+      - - CAR
+      - - VAN
+      - - TRUCK
+      - - BUS
+        - TRAILER
+      - - PEDESTRIAN
+      - - BICYCLE
+        - MOTORCYCLE
+      test_cfg:
+        max_per_img: 500
+        max_pool_nms: false
+        min_radius:
+        - 4
+        - 12
+        - 10
+        - 1
+        - 0.85
+        - 0.175
+        nms_scale:
+        - - 1.0
+        - - 1.0
+          - 1.0
+        - - 1.0
+          - 1.0
+        - - 1.0
+        - - 1.0
+          - 1.0
+        - - 2.5
+          - 4.0
+        nms_thr: 0.075
+        nms_type:
+        - circle
+        - rotate
+        - rotate
+        - circle
+        - rotate
+        - rotate
+        out_size_factor: 8
+        post_center_limit_range:
+        - -85.0
+        - -85.0
+        - -10.0
+        - 85.0
+        - 85.0
+        - 10.0
+        post_max_size: 83
+        pre_max_size: 1000
+        score_threshold: 0.1
+        voxel_size:
+        - 0.075
+        - 0.075
+      train_cfg:
+        code_weights:
+        - 1.0
+        - 1.0
+        - 1.0
+        - 1.0
+        - 1.0
+        - 1.0
+        - 1.0
+        - 1.0
+        - 0.2
+        - 0.2
+        dense_reg: 1
+        gaussian_overlap: 0.1
+        grid_size:
+        - 2000
+        - 2000
+        - 1
+        max_objs: 500
+        min_radius: 2
+        out_size_factor: 8
+        point_cloud_range:
+        - -75.0
+        - -75.0
+        - -8
+        - 75.0
+        - 75.0
+        - 0
+        voxel_size:
+        - 0.075
+        - 0.075
+        - 0.2
+      type: CenterHead
+  type: BEVFusion
+momentum_config:
+  cyclic_times: 1
+  policy: cyclic
+  step_ratio_up: 0.2
+object_classes:
+- CAR
+- TRAILER
+- TRUCK
+- VAN
+- PEDESTRIAN
+- BUS
+- MOTORCYCLE
+- BICYCLE
+optimizer:
+  lr: 0.0001
+  paramwise_cfg:
+    custom_keys:
+      absolute_pos_embed:
+        decay_mult: 0
+      encoders.camera.backbone:
+        lr_mult: 0.1
+      relative_position_bias_table:
+        decay_mult: 0
+  type: AdamW
+  weight_decay: 0.01
+optimizer_config:
+  grad_clip:
+    max_norm: 25
+    norm_type: 2
+point_cloud_range:
+- -75.0
+- -75.0
+- -8
+- 75.0
+- 75.0
+- 0
+reduce_beams: 32
+resume_from: null
+run_dir: runs_2_cam
+runner:
+  max_epochs: 20
+  type: CustomEpochBasedRunner
+seed: 0
+test_pipeline:
+- to_float32: true
+  type: LoadMultiViewImageFromFiles
+- coord_type: LIDAR
+  load_augmented: null
+  load_dim: 5
+  reduce_beams: 32
+  type: LoadPointsFromFile
+  use_dim: 5
+- load_augmented: null
+  load_dim: 5
+  pad_empty_sweeps: true
+  reduce_beams: 32
+  remove_close: true
+  sweeps_num: 0
+  type: LoadPointsFromMultiSweeps
+  use_dim: 5
+- bot_pct_lim:
+  - 0.0
+  - 0.0
+  final_dim:
+  - 256
+  - 704
+  is_train: false
+  rand_flip: false
+  resize_lim:
+  - 0.48
+  - 0.48
+  rot_lim:
+  - 0.0
+  - 0.0
+  type: ImageAug3D
+- is_train: false
+  resize_lim:
+  - 1.0
+  - 1.0
+  rot_lim:
+  - 0.0
+  - 0.0
+  trans_lim: 0.0
+  type: GlobalRotScaleTrans
+- point_cloud_range:
+  - -75.0
+  - -75.0
+  - -8
+  - 75.0
+  - 75.0
+  - 0
+  type: PointsRangeFilter
+- mean:
+  - 0.485
+  - 0.456
+  - 0.406
+  std:
+  - 0.229
+  - 0.224
+  - 0.225
+  type: ImageNormalize
+- classes:
+  - CAR
+  - TRAILER
+  - TRUCK
+  - VAN
+  - PEDESTRIAN
+  - BUS
+  - MOTORCYCLE
+  - BICYCLE
+  type: DefaultFormatBundle3D
+- keys:
+  - img
+  - points
+  meta_keys:
+  - camera_intrinsics
+  - camera2ego
+  - lidar2ego
+  - lidar2camera
+  - camera2lidar
+  - lidar2image
+  - img_aug_matrix
+  - lidar_aug_matrix
+  type: Collect3D
+train_pipeline:
+- to_float32: true
+  type: LoadMultiViewImageFromFiles
+- coord_type: LIDAR
+  load_augmented: null
+  load_dim: 5
+  reduce_beams: 32
+  type: LoadPointsFromFile
+  use_dim: 5
+- load_augmented: null
+  load_dim: 5
+  pad_empty_sweeps: true
+  reduce_beams: 32
+  remove_close: true
+  sweeps_num: 0
+  type: LoadPointsFromMultiSweeps
+  use_dim: 5
+- type: LoadAnnotations3D
+  with_attr_label: false
+  with_bbox_3d: true
+  with_label_3d: true
+- db_sampler:
+    classes:
+    - CAR
+    - TRAILER
+    - TRUCK
+    - VAN
+    - PEDESTRIAN
+    - BUS
+    - MOTORCYCLE
+    - BICYCLE
+    dataset_root: data/tumtraf_i_processed/
+    info_path: data/tumtraf_i_processed/tumtraf_nusc_dbinfos_train.pkl
+    points_loader:
+      coord_type: LIDAR
+      load_dim: 5
+      reduce_beams: 32
+      type: LoadPointsFromFile
+      use_dim: 5
+    prepare:
+      filter_by_difficulty:
+      - -1
+      filter_by_min_points:
+        BICYCLE: 0
+        BUS: 0
+        CAR: 0
+        MOTORCYCLE: 0
+        PEDESTRIAN: 0
+        TRAILER: 0
+        TRUCK: 0
+        VAN: 0
+    rate: 1.0
+    sample_groups:
+      BICYCLE: 7
+      BUS: 5
+      CAR: 2
+      MOTORCYCLE: 5
+      PEDESTRIAN: 7
+      TRAILER: 5
+      TRUCK: 3
+      VAN: 3
+  stop_epoch: -1
+  type: ObjectPaste
+- bot_pct_lim:
+  - 0.0
+  - 0.0
+  final_dim:
+  - 256
+  - 704
+  is_train: true
+  rand_flip: true
+  resize_lim:
+  - 0.38
+  - 0.55
+  rot_lim:
+  - -5.4
+  - 5.4
+  type: ImageAug3D
+- is_train: true
+  resize_lim:
+  - 0.95
+  - 1.05
+  rot_lim:
+  - -0.3925
+  - 0.3925
+  trans_lim: 0
+  type: GlobalRotScaleTrans
+- type: RandomFlip3D
+- point_cloud_range:
+  - -75.0
+  - -75.0
+  - -8
+  - 75.0
+  - 75.0
+  - 0
+  type: PointsRangeFilter
+- point_cloud_range:
+  - -75.0
+  - -75.0
+  - -8
+  - 75.0
+  - 75.0
+  - 0
+  type: ObjectRangeFilter
+- classes:
+  - CAR
+  - TRAILER
+  - TRUCK
+  - VAN
+  - PEDESTRIAN
+  - BUS
+  - MOTORCYCLE
+  - BICYCLE
+  type: ObjectNameFilter
+- mean:
+  - 0.485
+  - 0.456
+  - 0.406
+  std:
+  - 0.229
+  - 0.224
+  - 0.225
+  type: ImageNormalize
+- fixed_prob: true
+  max_epoch: 20
+  mode: 1
+  offset: false
+  prob: 0.0
+  ratio: 0.5
+  rotate: 1
+  type: GridMask
+  use_h: true
+  use_w: true
+- type: PointShuffle
+- classes:
+  - CAR
+  - TRAILER
+  - TRUCK
+  - VAN
+  - PEDESTRIAN
+  - BUS
+  - MOTORCYCLE
+  - BICYCLE
+  type: DefaultFormatBundle3D
+- keys:
+  - img
+  - points
+  - gt_bboxes_3d
+  - gt_labels_3d
+  meta_keys:
+  - camera_intrinsics
+  - camera2ego
+  - lidar2ego
+  - lidar2camera
+  - camera2lidar
+  - lidar2image
+  - img_aug_matrix
+  - lidar_aug_matrix
+  type: Collect3D
+use_dim: 5
+val_pipeline:
+- to_float32: true
+  type: LoadMultiViewImageFromFiles
+- coord_type: LIDAR
+  load_augmented: null
+  load_dim: 5
+  reduce_beams: 32
+  type: LoadPointsFromFile
+  use_dim: 5
+- load_augmented: null
+  load_dim: 5
+  pad_empty_sweeps: true
+  reduce_beams: 32
+  remove_close: true
+  sweeps_num: 0
+  type: LoadPointsFromMultiSweeps
+  use_dim: 5
+- type: LoadAnnotations3D
+  with_attr_label: false
+  with_bbox_3d: true
+  with_label_3d: true
+- bot_pct_lim:
+  - 0.0
+  - 0.0
+  final_dim:
+  - 256
+  - 704
+  is_train: false
+  rand_flip: false
+  resize_lim:
+  - 0.48
+  - 0.48
+  rot_lim:
+  - 0.0
+  - 0.0
+  type: ImageAug3D
+- is_train: false
+  resize_lim:
+  - 1.0
+  - 1.0
+  rot_lim:
+  - 0.0
+  - 0.0
+  trans_lim: 0.0
+  type: GlobalRotScaleTrans
+- point_cloud_range:
+  - -75.0
+  - -75.0
+  - -8
+  - 75.0
+  - 75.0
+  - 0
+  type: PointsRangeFilter
+- mean:
+  - 0.485
+  - 0.456
+  - 0.406
+  std:
+  - 0.229
+  - 0.224
+  - 0.225
+  type: ImageNormalize
+- classes:
+  - CAR
+  - TRAILER
+  - TRUCK
+  - VAN
+  - PEDESTRIAN
+  - BUS
+  - MOTORCYCLE
+  - BICYCLE
+  type: DefaultFormatBundle3D
+- keys:
+  - img
+  - points
+  - gt_bboxes_3d
+  - gt_labels_3d
+  meta_keys:
+  - camera_intrinsics
+  - camera2ego
+  - lidar2ego
+  - lidar2camera
+  - camera2lidar
+  - lidar2image
+  - img_aug_matrix
+  - lidar_aug_matrix
+  type: Collect3D
+voxel_size:
+- 0.075
+- 0.075
+- 0.2

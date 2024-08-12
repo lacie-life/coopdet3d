@@ -19,7 +19,8 @@ from .custom_3d import Custom3DDataset
 
 @DATASETS.register_module()
 class TUMTrafNuscDataset(Custom3DDataset):
-    CLASSES = ('CAR', 'TRAILER', 'TRUCK', 'VAN', 'PEDESTRIAN', 'BUS', 'MOTORCYCLE', 'OTHER', 'BICYCLE', 'EMERGENCY_VEHICLE')
+    # CLASSES = ('CAR', 'TRAILER', 'TRUCK', 'VAN', 'PEDESTRIAN', 'BUS', 'MOTORCYCLE', 'OTHER', 'BICYCLE', 'EMERGENCY_VEHICLE')
+    CLASSES = ('CAR', 'WHEELER', 'PEDESTRIAN')
 
     # https://github.com/nutonomy/nuscenes-devkit/blob/57889ff20678577025326cfc24e57424a829be0a/python-sdk/nuscenes/eval/detection/evaluate.py#L222 # noqa
     ErrNameMapping = {
@@ -30,18 +31,25 @@ class TUMTrafNuscDataset(Custom3DDataset):
     }
 
     # Modified from the originally used configs of BEVFusion https://github.com/nutonomy/nuscenes-devkit/blob/master/python-sdk/nuscenes/eval/detection/configs/detection_cvpr_2019.json
+    # cls_range = {
+    #     "CAR": 50,
+    #     "TRUCK": 50,
+    #     "BUS": 50,
+    #     "TRAILER": 50,
+    #     "VAN": 50,
+    #     'EMERGENCY_VEHICLE': 50,
+    #     "PEDESTRIAN": 40,
+    #     "MOTORCYCLE": 40,
+    #     "BICYCLE": 40,
+    #     "OTHER": 30
+    # }
+
     cls_range = {
         "CAR": 50,
-        "TRUCK": 50,
-        "BUS": 50,
-        "TRAILER": 50,
-        "VAN": 50,
-        'EMERGENCY_VEHICLE': 50,
         "PEDESTRIAN": 40,
-        "MOTORCYCLE": 40,
-        "BICYCLE": 40,
-        "OTHER": 30
+        "WHEELER": 40
     }
+
     dist_fcn = "center_distance"
     dist_ths = [0.5, 1.0, 2.0, 4.0]
     dist_th_tp = 2.0
@@ -383,6 +391,19 @@ class TUMTrafNuscDataset(Custom3DDataset):
 
         all_annotations = {}
 
+        class_map = {
+            'CAR': 'CAR',
+            'PEDESTRIAN': 'PEDESTRIAN',
+            'TRUCK': 'CAR',
+            'BUS': 'CAR',
+            'TRAILER': 'CAR',
+            'BICYCLE': 'WHEELER',
+            'MOTORCYCLE': 'WHEELER',
+            'VAN': 'CAR',
+            'EMERGENCY_VEHICLE': 'CAR',
+            'OTHER': 'CAR'
+        }
+
         for i, info in enumerate(self.data_infos):
             json1_file = open(info["lidar_anno_path"])
             json1_str = json1_file.read()
@@ -423,7 +444,7 @@ class TUMTrafNuscDataset(Custom3DDataset):
                     "rotation": yaw,
                     "velocity": [0, 0],
                     "num_pts": num_lidar_pts,
-                    "detection_name": object_data['type'],
+                    "detection_name": class_map[object_data['type']],
                     "detection_score": -1.0,  # GT samples do not have a score.
                 })
 

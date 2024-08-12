@@ -7,6 +7,7 @@ import sys
 sys.path.insert(0, osp.join(osp.dirname(osp.abspath(__file__)), '../../..'))
 
 from tools.data_converter.tumtraf_converter import TUMTraf2NuScenes
+from tools.data_converter.tumtraf_converter_all import TUMTraf2NuScenesAll
 from tools.data_converter.create_tumtraf_gt_database import (create_groundtruth_database)
 
 
@@ -20,7 +21,8 @@ def tumtraf_data_prep(root_path,
     save_dir = osp.join(out_dir)
     os.makedirs(save_dir, exist_ok=True, mode=0o777)
 
-    converter = TUMTraf2NuScenes(splits, load_dir, save_dir)
+    # converter = TUMTraf2NuScenes(splits, load_dir, save_dir)
+    converter = TUMTraf2NuScenesAll(splits, load_dir, save_dir)
     converter.convert()
     if 'training' in splits or 'validation' in splits:
         print("creating groundtruth database")
