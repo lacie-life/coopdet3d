@@ -180,6 +180,17 @@ def rotate_iou_cpu_one(box_info):
     iou_3d_pytorch3d = iou_3d_pytorch3d.numpy().item()
     return iou_3d_pytorch3d
 
+def rotate_iou_cpu_one_2d(box_info):
+    gt_box, pred_box = box_info
+    if np.linalg.norm(gt_box[:3] - pred_box[:3]) > 5:
+        return 0.0
+
+    iou_bev = []
+    
+    corners_3d_ground = get_3d_box(gt_box[3:6], gt_box[-1], gt_box[[0, 2, 1]])
+    corners_3d_predict = get_3d_box(pred_box[3:6], pred_box[-1], pred_box[[0, 2, 1]])
+
+    return iou_bev
 
 def rotate_iou_cpu_eval(gt_boxes, pred_boxes):
     """
