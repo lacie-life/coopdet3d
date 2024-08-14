@@ -18,7 +18,7 @@ OBJECT_PALETTE = {
     "construction_vehicle": (233, 150, 70),
     "bus": (255, 69, 0),
     "trailer": (255, 140, 0),
-    "barrier": (112, 128, 144),
+    "WHEELER": (112, 128, 144),
     "motorcycle": (255, 61, 99),
     "bicycle": (220, 20, 60),
     "pedestrian": (0, 0, 230),

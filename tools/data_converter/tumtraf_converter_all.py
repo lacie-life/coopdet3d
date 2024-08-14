@@ -154,6 +154,7 @@ class TUMTraf2NuScenesAll(object):
     def _fill_infos(self, pcd_list, img_south1_list, img_south2_list, pcd_labels_list, img_south1_labels_list, img_south2_labels_list, test=False):
         infos_list = []
 
+        # Maybe not use this
         lidar2ego = np.asarray([[0.99011437, -0.13753536, -0.02752358, 2.3728100375737995],
                                 [0.13828977, 0.99000475, 0.02768645, -16.19297517556697],
                                 [0.02344061, -0.03121898, 0.99923766, -8.620000000000005],
@@ -161,6 +162,7 @@ class TUMTraf2NuScenesAll(object):
 
         lidar2ego = lidar2ego[:-1, :]
 
+        # Projection matrix
         lidar2s1image = np.asarray([[7.04216073e02, -1.37317442e03, -4.32235765e02, -2.03369364e04],
                                     [-9.28351327e01, -1.77543929e01, -1.45629177e03, 9.80290034e02],
                                     [8.71736000e-01, -9.03453000e-02, -4.81574000e-01, -2.58546000e00]], dtype=np.float32)
@@ -169,6 +171,12 @@ class TUMTraf2NuScenesAll(object):
                                     [93.20805656, 47.90351592, -1482.13403199, 687.84781276],
                                     [0.73326062, 0.59708904, -0.32528854, -1.30114325]], dtype=np.float32)
         
+        lidar_north2s1image = np.asarray([[290.06440167, -1522.65885503, -417.08293461, -398.03125035],
+                                         [-88.96283956, 6.86258619, -1451.78013497, 454.22071755],
+                                         [0.81846385, -0.32818492, -0.47160557, -0.18257704]], dtype=np.float32)
+        
+
+        # Camera south 1 intrinsics
         south1intrinsics = np.asarray([[1400.3096617691212, 0.0, 967.7899705163408],
                                        [0.0, 1403.041082755918, 581.7195041357244],
                                        [0.0, 0.0, 1.0]], dtype=np.float32)
@@ -186,7 +194,13 @@ class TUMTraf2NuScenesAll(object):
                                    [0.0, 0.0, 0.0, 1.0]], dtype=np.float32)
         
         south12lidar = south12lidar[:-1, :]
+
+        south12lidar_north = np.asarray([[-0.36323242, -0.44517311,  0.81846389,  0.27676368],
+                                         [-0.93152698,  0.15668865, -0.32818466, -0.28936309],
+                                         [ 0.01785498, -0.88162857, -0.4716052,   0.29454409],
+                                         [ 0.,          0.,          0.,          1.        ]], dtype=np.float32)
         
+        # Camera south 2 intrinsics
         south2intrinsics = np.asarray([[1029.2795655594014, 0.0, 982.0311857478633],
                                        [0.0, 1122.2781391971948, 1129.1480997238505],
                                        [0.0, 0.0, 1.0]], dtype=np.float32)

@@ -15,3 +15,7 @@ torchpack dist-run -np 1 python tools/train.py configs/tumtraf_i/det/centerhead/
 torchpack dist-run -np 1 python tools/train.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml --run-dir runs/run_lidar_only
 
 python ./tools/create_tumtraf_data.py --root-path /home/lacie/Github/coopdet3d/data/tumtraf_i_v2 --out-dir /home/lacie/Github/coopdet3d/data/tumtraf_i_v2_processed --splits training,validation
+
+torchpack dist-run -np 1 python tools/test.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml /home/ivpg/Lacie/Github/coopdet3d/runs/run_lidar_only/epoch_20.pth --eval bbox
+
+/home/lacie/Github/coopdet3d/configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml
