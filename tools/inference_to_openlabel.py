@@ -272,7 +272,10 @@ def detections_to_openlabel(
         output_json_data["openlabel"]["streams"] = streams
     output_json_data["openlabel"]["frames"] = frame_map
     
-    with open(output_folder_path+filename, "w", encoding="utf-8") as f:
+    if not os.path.exists(output_folder_path):
+        os.makedirs(output_folder_path)
+
+    with open(output_folder_path + "/" + filename, "w", encoding="utf-8") as f:
         json.dump(output_json_data, f, indent=4)
 
     return output_json_data

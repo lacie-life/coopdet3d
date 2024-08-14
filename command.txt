@@ -19,3 +19,5 @@ python ./tools/create_tumtraf_data.py --root-path /home/lacie/Github/coopdet3d/d
 torchpack dist-run -np 1 python tools/test.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml /home/ivpg/Lacie/Github/coopdet3d/runs/run_lidar_only/epoch_20.pth --eval bbox
 
 /home/lacie/Github/coopdet3d/configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml
+
+torchpack dist-run -np 1 python tools/inference_to_openlabel.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml --checkpoint /home/lacie/Github/coopdet3d/runs/run_lidar_only_2/epoch_20.pth --split val --out-dir openlabel_output/lidar_only_2/
