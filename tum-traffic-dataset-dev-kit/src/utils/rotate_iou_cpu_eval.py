@@ -159,7 +159,7 @@ def get_3d_box(box_size, heading_angle, center):
 def rotate_iou_cpu_one(box_info):
     gt_box, pred_box = box_info
     if np.linalg.norm(gt_box[:3] - pred_box[:3]) > 5:
-        return 0.0
+        return 0.0, 0.0
 
     # diff_rot = gt_box[6] - pred_box[6]
     # diff_rot = np.abs(diff_rot)
@@ -172,23 +172,33 @@ def rotate_iou_cpu_one(box_info):
     corners_3d_predict = get_3d_box(pred_box[3:6], pred_box[-1], pred_box[[0, 2, 1]])
     # Sanity checks with ground truth revealed instability of this
     # method, so replaced by new method from Facebook
-    # iou_3d, _ = box3d_iou(corners_3d_ground, corners_3d_predict)
+    iou_3d, iou_2d_bev = box3d_iou(corners_3d_ground, corners_3d_predict)
     # Preparation for Facebook method https://pytorch3d.org/docs/iou3d
-    corners_3d_ground = torch.from_numpy(np.expand_dims(corners_3d_ground, axis=0).astype(np.float32))
-    corners_3d_predict = torch.from_numpy(np.expand_dims(corners_3d_predict, axis=0).astype(np.float32))
-    _, iou_3d_pytorch3d = box3d_overlap(corners_3d_ground, corners_3d_predict)
-    iou_3d_pytorch3d = iou_3d_pytorch3d.numpy().item()
-    return iou_3d_pytorch3d
+    # corners_3d_ground = torch.from_numpy(np.expand_dims(corners_3d_ground, axis=0).astype(np.float32))
+    # corners_3d_predict = torch.from_numpy(np.expand_dims(corners_3d_predict, axis=0).astype(np.float32))
+    # _, iou_3d = box3d_overlap(corners_3d_ground, corners_3d_predict)
+    # iou_3d = iou_3d.numpy().item()
+    # iou_2d_bev = iou_3d
+    
+    # print(iou_3d, iou_2d_bev)
+
+    return iou_3d, iou_2d_bev
 
 def rotate_iou_cpu_one_2d(box_info):
     gt_box, pred_box = box_info
     if np.linalg.norm(gt_box[:3] - pred_box[:3]) > 5:
         return 0.0
-
-    iou_bev = []
     
     corners_3d_ground = get_3d_box(gt_box[3:6], gt_box[-1], gt_box[[0, 2, 1]])
     corners_3d_predict = get_3d_box(pred_box[3:6], pred_box[-1], pred_box[[0, 2, 1]])
+
+    # Calculate 2D iou
+    rect1 = [(corners_3d_ground[i, 0], corners_3d_ground[i, 2]) for i in range(3, -1, -1)]
+    rect2 = [(corners_3d_predict[i, 0], corners_3d_predict[i, 2]) for i in range(3, -1, -1)]
+    area1 = poly_area(np.array(rect1)[:, 0], np.array(rect1)[:, 1])
+    area2 = poly_area(np.array(rect2)[:, 0], np.array(rect2)[:, 1])
+    inter, inter_area = convex_hull_intersection(rect1, rect2)
+    iou_bev = inter_area / (area1 + area2 - inter_area)
 
     return iou_bev
 
@@ -207,13 +217,20 @@ def rotate_iou_cpu_eval(gt_boxes, pred_boxes):
     for gt_box in gt_boxes:
         for pred_box in pred_boxes:
             data_list.append((gt_box, pred_box))
-    with Pool(8) as pool:
-        result = pool.map(rotate_iou_cpu_one, data_list)
-    # For Debugging: same result but no multithread
-    # result = []
-    # for item in data_list:
-    #     result.append(rotate_iou_cpu_one(item))
-    result = np.array(result)
-    if result.size > 0:
-        result = result.reshape((gt_num, -1))
-    return result
+    # with Pool(8) as pool:
+    #     result = pool.map(rotate_iou_cpu_one, data_list)
+    # # For Debugging: same result but no multithread
+    result_2d = []
+    result_3d = []
+    for item in data_list:
+        _result_3d, _result_2d = rotate_iou_cpu_one(item)
+        result_3d.append(_result_3d)
+        result_2d.append(_result_2d)
+
+    results_2d = np.array(result_2d)
+    results_3d = np.array(result_3d)
+    if results_2d.size > 0:
+        results_2d = results_2d.reshape((gt_num, -1))
+    if results_3d.size > 0:
+        results_3d = results_3d.reshape((gt_num, -1))
+    return results_2d, results_3d

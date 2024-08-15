@@ -30,9 +30,9 @@ from src.utils.perspective import parse_perspective
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 iou_threshold_dict = {
-    "CAR": 0.5,
-    "PEDESTRIAN": 0.5,
-    "WHEELER": 0.5,
+    "CAR": 0.1,
+    "PEDESTRIAN": 0.1,
+    "WHEELER": 0.1,
 }
 
 superclass_iou_threshold_dict = {"VEHICLE": 0.1, "PEDESTRIAN": 0.1, "BICYCLE": 0.1}  # 0.7  # 0.3  # 0.5
@@ -99,7 +99,9 @@ def get_evaluation_results(
     split_parts = compute_split_parts(num_samples, num_parts)
 
     # Add BEV 2D evaluation
-    ious = compute_iou3d_cpu(gt_annotation_frames, pred_annotation_frames, prediction_type=prediction_type)
+    ious_bev_2d, ious_3d = compute_iou3d_cpu(gt_annotation_frames, pred_annotation_frames, prediction_type=prediction_type)
+    print("ious_bev_2d", len(ious_bev_2d))
+    print("ious_3d", len(ious_3d))
     
     num_classes = len(classes)
     num_difficulties = 4
@@ -107,6 +109,7 @@ def get_evaluation_results(
     precision = np.zeros([num_classes, num_difficulties, num_pr_points + 1])
     recall = np.zeros([num_classes, num_difficulties, num_pr_points + 1])
     iou_3d = np.zeros([num_classes, num_difficulties])
+    iou_2d = np.zeros([num_classes, num_difficulties])
     pos_err = np.zeros([num_classes, num_difficulties])
     rot_err = np.zeros([num_classes, num_difficulties])
 
@@ -116,231 +119,461 @@ def get_evaluation_results(
         gt_class_occurrence[cur_class] = 0
         pred_class_occurrence[cur_class] = 0
 
-    for sample_idx in range(num_samples):
-        gt_anno = gt_annotation_frames[sample_idx]
-        pred_anno = pred_annotation_frames[sample_idx]
+    if model_eval == 0:
 
-        if len(gt_anno["name"]) == 0 or len(pred_anno["name"]) == 0:
-            print("no gt or prediction")
-            continue
+        for sample_idx in range(num_samples):
+            gt_anno = gt_annotation_frames[sample_idx]
+            pred_anno = pred_annotation_frames[sample_idx]
 
-        if use_superclass:
-            if gt_anno["name"].size > 0:
-                n_pedestrians = (gt_anno["name"] == "PEDESTRIAN").sum()
-                n_bicylces = (np.logical_or(gt_anno["name"] == "BICYCLE", gt_anno["name"] == "MOTORCYCLE")).sum()
-                n_vehicles = len(gt_anno["name"]) - n_pedestrians - n_bicylces
+            if len(gt_anno["name"]) == 0 or len(pred_anno["name"]) == 0:
+                print("no gt or prediction")
+                continue
 
-                for obj_class in classes:
-                    if obj_class.upper() == "VEHICLE":
-                        gt_class_occurrence[obj_class] += n_vehicles
-                    if obj_class.upper() == "BICYCLE":
-                        gt_class_occurrence[obj_class] += n_bicylces
-                    if obj_class.upper() == "PEDESTRIAN":
-                        gt_class_occurrence[obj_class] += n_pedestrians
-            if pred_anno["name"].size > 0:
-                n_pedestrians = (pred_anno["name"] == "PEDESTRIAN").sum()
-                n_bicylces = (np.logical_or(pred_anno["name"] == "BICYCLE", pred_anno["name"] == "MOTORCYCLE")).sum()
-                n_vehicles = len(pred_anno["name"]) - n_pedestrians - n_bicylces
-                for obj_class in classes:
-                    if obj_class.upper() == "VEHICLE":
-                        pred_class_occurrence[obj_class] += n_vehicles
-                    if obj_class.upper() == "BICYCLE":
-                        pred_class_occurrence[obj_class] += n_bicylces
-                    if obj_class.upper() == "PEDESTRIAN":
-                        pred_class_occurrence[obj_class] += n_pedestrians
-        else:
-            for cur_class in classes:
+            if use_superclass:
                 if gt_anno["name"].size > 0:
-                    gt_class_occurrence[cur_class] += (gt_anno["name"] == cur_class.upper()).sum()
+                    n_pedestrians = (gt_anno["name"] == "PEDESTRIAN").sum()
+                    n_bicylces = (np.logical_or(gt_anno["name"] == "BICYCLE", gt_anno["name"] == "MOTORCYCLE")).sum()
+                    n_vehicles = len(gt_anno["name"]) - n_pedestrians - n_bicylces
+
+                    for obj_class in classes:
+                        if obj_class.upper() == "VEHICLE":
+                            gt_class_occurrence[obj_class] += n_vehicles
+                        if obj_class.upper() == "BICYCLE":
+                            gt_class_occurrence[obj_class] += n_bicylces
+                        if obj_class.upper() == "PEDESTRIAN":
+                            gt_class_occurrence[obj_class] += n_pedestrians
                 if pred_anno["name"].size > 0:
-                    pred_class_occurrence[cur_class] += (pred_anno["name"] == cur_class.upper()).sum()
+                    n_pedestrians = (pred_anno["name"] == "PEDESTRIAN").sum()
+                    n_bicylces = (np.logical_or(pred_anno["name"] == "BICYCLE", pred_anno["name"] == "MOTORCYCLE")).sum()
+                    n_vehicles = len(pred_anno["name"]) - n_pedestrians - n_bicylces
+                    for obj_class in classes:
+                        if obj_class.upper() == "VEHICLE":
+                            pred_class_occurrence[obj_class] += n_vehicles
+                        if obj_class.upper() == "BICYCLE":
+                            pred_class_occurrence[obj_class] += n_bicylces
+                        if obj_class.upper() == "PEDESTRIAN":
+                            pred_class_occurrence[obj_class] += n_pedestrians
+            else:
+                for cur_class in classes:
+                    if gt_anno["name"].size > 0:
+                        gt_class_occurrence[cur_class] += (gt_anno["name"] == cur_class.upper()).sum()
+                    if pred_anno["name"].size > 0:
+                        pred_class_occurrence[cur_class] += (pred_anno["name"] == cur_class.upper()).sum()
 
-    for cls_idx, cur_class in enumerate(classes):
-        iou_threshold = iou_thresholds[cur_class.upper()]
-        for diff_idx in range(num_difficulties):
-            ### filter data & determine score thresholds on p-r curve ###
-            accum_all_scores, accum_all_ious, accum_all_pos, accum_all_rot, gt_flags, pred_flags = (
-                [],
-                [],
-                [],
-                [],
-                [],
-                [],
-            )
-            num_valid_gt = 0
+        for cls_idx, cur_class in enumerate(classes):
+            iou_threshold = iou_thresholds[cur_class.upper()]
+            for diff_idx in range(num_difficulties):
+                ### filter data & determine score thresholds on p-r curve ###
+                accum_all_scores, accum_all_ious, accum_all_pos, accum_all_rot, gt_flags, pred_flags = (
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                )
+                num_valid_gt = 0
 
-            for sample_idx in range(num_samples):
-                gt_anno = gt_annotation_frames[sample_idx]
-                pred_anno = pred_annotation_frames[sample_idx]
+                for sample_idx in range(num_samples):
+                    gt_anno = gt_annotation_frames[sample_idx]
+                    pred_anno = pred_annotation_frames[sample_idx]
 
-                pred_score = pred_anno["score"]
-                if len(ious) > 0:
-                    iou = ious[sample_idx]
-                    gt_flag, pred_flag = filter_data(
-                        gt_anno,
-                        pred_anno,
-                        difficulty_mode,
-                        difficulty_level=diff_idx,
-                        class_name=cur_class.upper(),
-                        use_superclass=use_superclass,
-                    )
-                    gt_flags.append(gt_flag)
-                    pred_flags.append(pred_flag)
-                    num_valid_gt += sum(gt_flag == 0)
-                    if iou.size > 0:
-                        accum_scores, accum_iou, accum_pos, accum_rot = accumulate_scores(
-                            gt_anno["boxes_3d"],
-                            pred_anno["boxes_3d"],
-                            iou,
-                            pred_score,
-                            gt_flag,
-                            pred_flag,
-                            iou_threshold=iou_threshold,
+                    pred_score = pred_anno["score"]
+                    if len(ious_3d) > 0:
+                        iou = ious_3d[sample_idx]
+                        gt_flag, pred_flag = filter_data(
+                            gt_anno,
+                            pred_anno,
+                            difficulty_mode,
+                            difficulty_level=diff_idx,
+                            class_name=cur_class.upper(),
+                            use_superclass=use_superclass,
                         )
+                        gt_flags.append(gt_flag)
+                        pred_flags.append(pred_flag)
+                        num_valid_gt += sum(gt_flag == 0)
+                        if iou.size > 0:
+                            accum_scores, accum_iou, accum_pos, accum_rot = accumulate_scores(
+                                gt_anno["boxes_3d"],
+                                pred_anno["boxes_3d"],
+                                iou,
+                                pred_score,
+                                gt_flag,
+                                pred_flag,
+                                iou_threshold=iou_threshold,
+                            )
+                        else:
+                            # continue
+                            print("iou is empty")
+                            accum_scores, accum_iou, accum_pos, accum_rot = (
+                                np.array([]),
+                                np.array([]),
+                                np.array([]),
+                                np.array([]),
+                            )
+                        accum_all_scores.append(accum_scores)
+                        accum_all_ious.append(accum_iou)
+                        accum_all_pos.append(accum_pos)
+                        accum_all_rot.append(accum_rot)
                     else:
-                        # continue
-                        print("iou is empty")
-                        accum_scores, accum_iou, accum_pos, accum_rot = (
-                            np.array([]),
-                            np.array([]),
-                            np.array([]),
-                            np.array([]),
-                        )
-                    accum_all_scores.append(accum_scores)
-                    accum_all_ious.append(accum_iou)
-                    accum_all_pos.append(accum_pos)
-                    accum_all_rot.append(accum_rot)
-                else:
-                    print("No iou found in data. Use an iou threshold of e.g. iou=0.7")
+                        print("No iou found in data. Use an iou threshold of e.g. iou=0.7")
 
-            all_scores = np.concatenate(accum_all_scores, axis=0)
-            all_ious = np.concatenate(accum_all_ious, axis=0)
-            all_pos = np.concatenate(accum_all_pos, axis=0)
-            all_rot = np.concatenate(accum_all_rot, axis=0)
-            thresholds = get_thresholds(all_scores, num_valid_gt, num_pr_points=num_pr_points)
+                all_scores = np.concatenate(accum_all_scores, axis=0)
+                all_ious = np.concatenate(accum_all_ious, axis=0)
+                all_pos = np.concatenate(accum_all_pos, axis=0)
+                all_rot = np.concatenate(accum_all_rot, axis=0)
+                thresholds = get_thresholds(all_scores, num_valid_gt, num_pr_points=num_pr_points)
 
-            ### compute avg iou, pos/rot error ###
-            iou_3d[cls_idx, diff_idx] = np.average(all_ious) if len(all_ious) else 0.0
-            pos_err[cls_idx, diff_idx] = np.average(all_pos) if len(all_pos) else 0.0
-            rot_err[cls_idx, diff_idx] = np.average(all_rot) if len(all_rot) else 0.0
+                ### compute avg iou, pos/rot error ###
+                iou_3d[cls_idx, diff_idx] = np.average(all_ious) if len(all_ious) else 0.0
+                pos_err[cls_idx, diff_idx] = np.average(all_pos) if len(all_pos) else 0.0
+                rot_err[cls_idx, diff_idx] = np.average(all_rot) if len(all_rot) else 0.0
 
-            ### compute tp/fp/fn ###
-            confusion_matrix = np.zeros([len(thresholds), 3])  # only record tp/fp/fn
-            for sample_idx in range(num_samples):
-                pred_score = pred_annotation_frames[sample_idx]["score"]
-                iou = ious[sample_idx]
-                gt_flag, pred_flag = gt_flags[sample_idx], pred_flags[sample_idx]
-                for th_idx, score_th in enumerate(thresholds):
-                    if iou.size > 0:
-                        tp, fp, fn = compute_statistics(
-                            iou, pred_score, gt_flag, pred_flag, score_threshold=score_th, iou_threshold=iou_threshold
-                        )
-                        confusion_matrix[th_idx, 0] += tp
-                        confusion_matrix[th_idx, 1] += fp
-                        confusion_matrix[th_idx, 2] += fn
+                ### compute tp/fp/fn ###
+                confusion_matrix = np.zeros([len(thresholds), 3])  # only record tp/fp/fn
+                for sample_idx in range(num_samples):
+                    pred_score = pred_annotation_frames[sample_idx]["score"]
+                    iou = ious_3d[sample_idx]
+                    gt_flag, pred_flag = gt_flags[sample_idx], pred_flags[sample_idx]
+                    for th_idx, score_th in enumerate(thresholds):
+                        if iou.size > 0:
+                            tp, fp, fn = compute_statistics(
+                                iou, pred_score, gt_flag, pred_flag, score_threshold=score_th, iou_threshold=iou_threshold
+                            )
+                            confusion_matrix[th_idx, 0] += tp
+                            confusion_matrix[th_idx, 1] += fp
+                            confusion_matrix[th_idx, 2] += fn
 
-            ### draw p-r curve ###
-            for th_idx in range(len(thresholds)):
-                recall[cls_idx, diff_idx, th_idx] = confusion_matrix[th_idx, 0] / (
-                    confusion_matrix[th_idx, 0] + confusion_matrix[th_idx, 2]
-                )
-                precision[cls_idx, diff_idx, th_idx] = confusion_matrix[th_idx, 0] / (
-                    confusion_matrix[th_idx, 0] + confusion_matrix[th_idx, 1]
-                )
+                ### draw p-r curve ###
+                for th_idx in range(len(thresholds)):
+                    recall[cls_idx, diff_idx, th_idx] = confusion_matrix[th_idx, 0] / (
+                        confusion_matrix[th_idx, 0] + confusion_matrix[th_idx, 2]
+                    )
+                    precision[cls_idx, diff_idx, th_idx] = confusion_matrix[th_idx, 0] / (
+                        confusion_matrix[th_idx, 0] + confusion_matrix[th_idx, 1]
+                    )
 
-            for th_idx in range(len(thresholds)):
-                precision[cls_idx, diff_idx, th_idx] = np.max(precision[cls_idx, diff_idx, th_idx:], axis=-1)
-                recall[cls_idx, diff_idx, th_idx] = np.max(recall[cls_idx, diff_idx, th_idx:], axis=-1)
+                for th_idx in range(len(thresholds)):
+                    precision[cls_idx, diff_idx, th_idx] = np.max(precision[cls_idx, diff_idx, th_idx:], axis=-1)
+                    recall[cls_idx, diff_idx, th_idx] = np.max(recall[cls_idx, diff_idx, th_idx:], axis=-1)
 
-    AP = 0
+        AP = 0
 
-    for i in range(1, precision.shape[-1]):
-        AP += precision[..., i]
-    AP = AP / num_pr_points * 100
+        for i in range(1, precision.shape[-1]):
+            AP += precision[..., i]
+        AP = AP / num_pr_points * 100
 
-    ret_str = "|%-18s|" % "Classes"
-    ret_str += "%-12s|" % "Precision"
-    ret_str += "%-12s|" % "Recall"
-    ret_str += "\n"
-    for idx, cur_class in enumerate(classes):
-        ret_str += "|%-18s|" % cur_class
-        ret_str += "%-12.2f|" % (np.mean(precision[idx], axis=-1)[0] * 100)
-        ret_str += "%-12.2f|" % (np.mean(recall[idx], axis=-1)[0] * 100)
+        ret_str = "|%-18s|" % "Classes"
+        ret_str += "%-12s|" % "Precision"
+        ret_str += "%-12s|" % "Recall"
         ret_str += "\n"
-    print(ret_str)
-    ret_dict = {}
+        for idx, cur_class in enumerate(classes):
+            ret_str += "|%-18s|" % cur_class
+            ret_str += "%-12.2f|" % (np.mean(precision[idx], axis=-1)[0] * 100)
+            ret_str += "%-12.2f|" % (np.mean(recall[idx], axis=-1)[0] * 100)
+            ret_str += "\n"
+        print(ret_str)
+        ret_dict = {}
 
-    ret_str = "|AP@%-15s|" % (str(num_pr_points))
-    for diff_type in difficulty_types:
-        ret_str += "%-15s|" % diff_type
-    ret_str += "%-20s|" % "Occurrence (pred/gt)"
-    ret_str += "%-10s|" % "IOU_3D"
-    ret_str += "%-10s|" % "Pos-RMSE"
-    ret_str += "%-10s|" % "Rot-RMSE"
-    ret_str += "\n"
-    for cls_idx, cur_class in enumerate(classes):
-        ret_str += "|%-18s|" % cur_class
+        ret_str = "|AP@%-15s|" % (str(num_pr_points))
+        for diff_type in difficulty_types:
+            ret_str += "%-15s|" % diff_type
+        ret_str += "%-20s|" % "Occurrence (pred/gt)"
+        ret_str += "%-10s|" % "IOU_3D"
+        ret_str += "%-10s|" % "Pos-RMSE"
+        ret_str += "%-10s|" % "Rot-RMSE"
+        ret_str += "\n"
+        for cls_idx, cur_class in enumerate(classes):
+            ret_str += "|%-18s|" % cur_class
+            for diff_idx in range(num_difficulties):
+                diff_type = difficulty_types[diff_idx]
+                key = "AP_" + cur_class + "/" + diff_type
+                # TODO: Adopt correction of TP=0, FP=0 -> AP = 0 for all difficulty
+                # types by counting occurrence individually for each difficulty type
+                # if pred_class_occurrence[cur_class] == 0 and gt_class_occurrence[cur_class] == 0:
+                #     AP[cls_idx, diff_idx] = 100
+                ap_score = AP[cls_idx, diff_idx]
+                ret_dict[key] = ap_score
+                ret_str += "%-15.2f|" % ap_score
+            ret_str += "%-20s|" % (str(pred_class_occurrence[cur_class]) + "/" + str(gt_class_occurrence[cur_class]))
+            ret_str += "%-10.2f|" % np.average(iou_3d[cls_idx].flatten())
+            ret_str += "%-10.2f|" % np.average(pos_err[cls_idx].flatten())
+            ret_str += "%-10.2f|" % np.average(rot_err[cls_idx].flatten())
+            ret_str += "\n"
+        mAP = np.mean(AP, axis=0)
+        ret_str += "|%-18s|" % "mAP"
         for diff_idx in range(num_difficulties):
             diff_type = difficulty_types[diff_idx]
-            key = "AP_" + cur_class + "/" + diff_type
-            # TODO: Adopt correction of TP=0, FP=0 -> AP = 0 for all difficulty
-            # types by counting occurrence individually for each difficulty type
-            # if pred_class_occurrence[cur_class] == 0 and gt_class_occurrence[cur_class] == 0:
-            #     AP[cls_idx, diff_idx] = 100
-            ap_score = AP[cls_idx, diff_idx]
+            key = "AP_mean" + "/" + diff_type
+            ap_score = mAP[diff_idx]
             ret_dict[key] = ap_score
             ret_str += "%-15.2f|" % ap_score
-        ret_str += "%-20s|" % (str(pred_class_occurrence[cur_class]) + "/" + str(gt_class_occurrence[cur_class]))
-        ret_str += "%-10.2f|" % np.average(iou_3d[cls_idx].flatten())
-        ret_str += "%-10.2f|" % np.average(pos_err[cls_idx].flatten())
-        ret_str += "%-10.2f|" % np.average(rot_err[cls_idx].flatten())
+        ret_str += "%-20s|" % (
+            str(np.sum(list(pred_class_occurrence.values())))
+            + "/"
+            + str(np.sum(list(gt_class_occurrence.values())))
+            + " (Total)"
+        )
+        ret_str += "%-10.2f|" % np.average(iou_3d.flatten())
+        ret_str += "%-10.2f|" % np.average(pos_err.flatten())
+        ret_str += "%-10.2f|" % np.average(rot_err.flatten())
         ret_str += "\n"
-    mAP = np.mean(AP, axis=0)
-    ret_str += "|%-18s|" % "mAP"
-    for diff_idx in range(num_difficulties):
-        diff_type = difficulty_types[diff_idx]
-        key = "AP_mean" + "/" + diff_type
-        ap_score = mAP[diff_idx]
-        ret_dict[key] = ap_score
-        ret_str += "%-15.2f|" % ap_score
-    ret_str += "%-20s|" % (
-        str(np.sum(list(pred_class_occurrence.values())))
-        + "/"
-        + str(np.sum(list(gt_class_occurrence.values())))
-        + " (Total)"
-    )
-    ret_str += "%-10.2f|" % np.average(iou_3d.flatten())
-    ret_str += "%-10.2f|" % np.average(pos_err.flatten())
-    ret_str += "%-10.2f|" % np.average(rot_err.flatten())
-    ret_str += "\n"
 
-    if print_ok:
-        print(ret_str)
+        if print_ok:
+            print(ret_str)
 
-    ####################
-    ## pretty print (for excel sheet)
-    ####################
-    ret_header_str = "Class,Precision,Recall,AP_overall,distance_0_40,distance_40_50,distance_50_64,Occurrence (pred/gt),IOU_3D,Pos-RMSE,Rot-RMSE\n"
-    for cls_idx, cur_class in enumerate(classes):
-        ret_header_str += f"{cur_class},{np.mean(precision[cls_idx], axis=-1)[0] * 100:.2f},{np.mean(recall[cls_idx], axis=-1)[0] * 100:.2f},"
+        ####################
+        ## pretty print (for excel sheet)
+        ####################
+        ret_header_str = "Class,Precision,Recall,AP_overall,distance_0_40,distance_40_50,distance_50_64,Occurrence (pred/gt),IOU_3D,Pos-RMSE,Rot-RMSE\n"
+        for cls_idx, cur_class in enumerate(classes):
+            ret_header_str += f"{cur_class},{np.mean(precision[cls_idx], axis=-1)[0] * 100:.2f},{np.mean(recall[cls_idx], axis=-1)[0] * 100:.2f},"
+            for diff_idx in range(num_difficulties):
+                diff_type = difficulty_types[diff_idx]
+                ap_score = AP[cls_idx, diff_idx]
+                ret_header_str += f"{ap_score:.2f},"
+            ret_header_str += f"{pred_class_occurrence[cur_class]}/{gt_class_occurrence[cur_class]},"
+            ret_header_str += f"{np.average(iou_3d[cls_idx].flatten()):.2f},"
+            ret_header_str += f"{np.average(pos_err[cls_idx].flatten()):.2f},"
+            ret_header_str += f"{np.average(rot_err[cls_idx].flatten()):.2f}\n"
+
+        ret_header_str += "mAP,,,"
         for diff_idx in range(num_difficulties):
             diff_type = difficulty_types[diff_idx]
-            ap_score = AP[cls_idx, diff_idx]
+            ap_score = mAP[diff_idx]
             ret_header_str += f"{ap_score:.2f},"
-        ret_header_str += f"{pred_class_occurrence[cur_class]}/{gt_class_occurrence[cur_class]},"
-        ret_header_str += f"{np.average(iou_3d[cls_idx].flatten()):.2f},"
-        ret_header_str += f"{np.average(pos_err[cls_idx].flatten()):.2f},"
-        ret_header_str += f"{np.average(rot_err[cls_idx].flatten()):.2f}\n"
+        ret_header_str += f"{np.sum(list(pred_class_occurrence.values()))}/{np.sum(list(gt_class_occurrence.values()))},"
+        ret_header_str += f"{np.average(iou_3d.flatten()):.2f},"
+        ret_header_str += f"{np.average(pos_err.flatten()):.2f},"
+        ret_header_str += f"{np.average(rot_err.flatten()):.2f}\n"
 
-    ret_header_str += "mAP,,,"
-    for diff_idx in range(num_difficulties):
-        diff_type = difficulty_types[diff_idx]
-        ap_score = mAP[diff_idx]
-        ret_header_str += f"{ap_score:.2f},"
-    ret_header_str += f"{np.sum(list(pred_class_occurrence.values()))}/{np.sum(list(gt_class_occurrence.values()))},"
-    ret_header_str += f"{np.average(iou_3d.flatten()):.2f},"
-    ret_header_str += f"{np.average(pos_err.flatten()):.2f},"
-    ret_header_str += f"{np.average(rot_err.flatten()):.2f}\n"
+    elif model_eval == 1:
+        for sample_idx in range(num_samples):
+            gt_anno = gt_annotation_frames[sample_idx]
+            pred_anno = pred_annotation_frames[sample_idx]
+
+            if len(gt_anno["name"]) == 0 or len(pred_anno["name"]) == 0:
+                print("no gt or prediction")
+                continue
+
+            if use_superclass:
+                if gt_anno["name"].size > 0:
+                    n_pedestrians = (gt_anno["name"] == "PEDESTRIAN").sum()
+                    n_bicylces = (np.logical_or(gt_anno["name"] == "BICYCLE", gt_anno["name"] == "MOTORCYCLE")).sum()
+                    n_vehicles = len(gt_anno["name"]) - n_pedestrians - n_bicylces
+
+                    for obj_class in classes:
+                        if obj_class.upper() == "VEHICLE":
+                            gt_class_occurrence[obj_class] += n_vehicles
+                        if obj_class.upper() == "BICYCLE":
+                            gt_class_occurrence[obj_class] += n_bicylces
+                        if obj_class.upper() == "PEDESTRIAN":
+                            gt_class_occurrence[obj_class] += n_pedestrians
+                if pred_anno["name"].size > 0:
+                    n_pedestrians = (pred_anno["name"] == "PEDESTRIAN").sum()
+                    n_bicylces = (np.logical_or(pred_anno["name"] == "BICYCLE", pred_anno["name"] == "MOTORCYCLE")).sum()
+                    n_vehicles = len(pred_anno["name"]) - n_pedestrians - n_bicylces
+                    for obj_class in classes:
+                        if obj_class.upper() == "VEHICLE":
+                            pred_class_occurrence[obj_class] += n_vehicles
+                        if obj_class.upper() == "BICYCLE":
+                            pred_class_occurrence[obj_class] += n_bicylces
+                        if obj_class.upper() == "PEDESTRIAN":
+                            pred_class_occurrence[obj_class] += n_pedestrians
+            else:
+                for cur_class in classes:
+                    if gt_anno["name"].size > 0:
+                        gt_class_occurrence[cur_class] += (gt_anno["name"] == cur_class.upper()).sum()
+                    if pred_anno["name"].size > 0:
+                        pred_class_occurrence[cur_class] += (pred_anno["name"] == cur_class.upper()).sum()
+
+        for cls_idx, cur_class in enumerate(classes):
+            iou_threshold = iou_thresholds[cur_class.upper()]
+            for diff_idx in range(num_difficulties):
+                ### filter data & determine score thresholds on p-r curve ###
+                accum_all_scores, accum_all_ious, accum_all_pos, accum_all_rot, gt_flags, pred_flags = (
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                )
+                num_valid_gt = 0
+
+                for sample_idx in range(num_samples):
+                    gt_anno = gt_annotation_frames[sample_idx]
+                    pred_anno = pred_annotation_frames[sample_idx]
+
+                    pred_score = pred_anno["score"]
+                    if len(ious_bev_2d) > 0:
+                        iou = ious_bev_2d[sample_idx]
+                        gt_flag, pred_flag = filter_data(
+                            gt_anno,
+                            pred_anno,
+                            difficulty_mode,
+                            difficulty_level=diff_idx,
+                            class_name=cur_class.upper(),
+                            use_superclass=use_superclass,
+                        )
+                        gt_flags.append(gt_flag)
+                        pred_flags.append(pred_flag)
+                        num_valid_gt += sum(gt_flag == 0)
+                        if iou.size > 0:
+                            accum_scores, accum_iou, accum_pos, accum_rot = accumulate_scores(
+                                gt_anno["boxes_3d"],
+                                pred_anno["boxes_3d"],
+                                iou,
+                                pred_score,
+                                gt_flag,
+                                pred_flag,
+                                iou_threshold=iou_threshold,
+                            )
+                        else:
+                            # continue
+                            print("iou is empty")
+                            accum_scores, accum_iou, accum_pos, accum_rot = (
+                                np.array([]),
+                                np.array([]),
+                                np.array([]),
+                                np.array([]),
+                            )
+                        accum_all_scores.append(accum_scores)
+                        accum_all_ious.append(accum_iou)
+                        accum_all_pos.append(accum_pos)
+                        accum_all_rot.append(accum_rot)
+                    else:
+                        print("No iou found in data. Use an iou threshold of e.g. iou=0.7")
+
+                all_scores = np.concatenate(accum_all_scores, axis=0)
+                all_ious = np.concatenate(accum_all_ious, axis=0)
+                all_pos = np.concatenate(accum_all_pos, axis=0)
+                all_rot = np.concatenate(accum_all_rot, axis=0)
+                thresholds = get_thresholds(all_scores, num_valid_gt, num_pr_points=num_pr_points)
+
+                ### compute avg iou, pos/rot error ###
+                iou_2d[cls_idx, diff_idx] = np.average(all_ious) if len(all_ious) else 0.0
+                pos_err[cls_idx, diff_idx] = np.average(all_pos) if len(all_pos) else 0.0
+                rot_err[cls_idx, diff_idx] = np.average(all_rot) if len(all_rot) else 0.0
+
+                ### compute tp/fp/fn ###
+                confusion_matrix = np.zeros([len(thresholds), 3])  # only record tp/fp/fn
+                for sample_idx in range(num_samples):
+                    pred_score = pred_annotation_frames[sample_idx]["score"]
+                    iou = ious_bev_2d[sample_idx]
+                    gt_flag, pred_flag = gt_flags[sample_idx], pred_flags[sample_idx]
+                    for th_idx, score_th in enumerate(thresholds):
+                        if iou.size > 0:
+                            tp, fp, fn = compute_statistics(
+                                iou, pred_score, gt_flag, pred_flag, score_threshold=score_th, iou_threshold=iou_threshold
+                            )
+                            confusion_matrix[th_idx, 0] += tp
+                            confusion_matrix[th_idx, 1] += fp
+                            confusion_matrix[th_idx, 2] += fn
+
+                ### draw p-r curve ###
+                for th_idx in range(len(thresholds)):
+                    recall[cls_idx, diff_idx, th_idx] = confusion_matrix[th_idx, 0] / (
+                        confusion_matrix[th_idx, 0] + confusion_matrix[th_idx, 2]
+                    )
+                    precision[cls_idx, diff_idx, th_idx] = confusion_matrix[th_idx, 0] / (
+                        confusion_matrix[th_idx, 0] + confusion_matrix[th_idx, 1]
+                    )
+
+                for th_idx in range(len(thresholds)):
+                    precision[cls_idx, diff_idx, th_idx] = np.max(precision[cls_idx, diff_idx, th_idx:], axis=-1)
+                    recall[cls_idx, diff_idx, th_idx] = np.max(recall[cls_idx, diff_idx, th_idx:], axis=-1)
+
+        AP = 0
+
+        for i in range(1, precision.shape[-1]):
+            AP += precision[..., i]
+        AP = AP / num_pr_points * 100
+
+        ret_str = "|%-18s|" % "Classes"
+        ret_str += "%-12s|" % "Precision"
+        ret_str += "%-12s|" % "Recall"
+        ret_str += "\n"
+        for idx, cur_class in enumerate(classes):
+            ret_str += "|%-18s|" % cur_class
+            ret_str += "%-12.2f|" % (np.mean(precision[idx], axis=-1)[0] * 100)
+            ret_str += "%-12.2f|" % (np.mean(recall[idx], axis=-1)[0] * 100)
+            ret_str += "\n"
+        print(ret_str)
+        ret_dict = {}
+
+        ret_str = "|AP@%-15s|" % (str(num_pr_points))
+        for diff_type in difficulty_types:
+            ret_str += "%-15s|" % diff_type
+        ret_str += "%-20s|" % "Occurrence (pred/gt)"
+        ret_str += "%-10s|" % "IOU_2D"
+        ret_str += "%-10s|" % "Pos-RMSE"
+        ret_str += "%-10s|" % "Rot-RMSE"
+        ret_str += "\n"
+        for cls_idx, cur_class in enumerate(classes):
+            ret_str += "|%-18s|" % cur_class
+            for diff_idx in range(num_difficulties):
+                diff_type = difficulty_types[diff_idx]
+                key = "AP_" + cur_class + "/" + diff_type
+                # TODO: Adopt correction of TP=0, FP=0 -> AP = 0 for all difficulty
+                # types by counting occurrence individually for each difficulty type
+                # if pred_class_occurrence[cur_class] == 0 and gt_class_occurrence[cur_class] == 0:
+                #     AP[cls_idx, diff_idx] = 100
+                ap_score = AP[cls_idx, diff_idx]
+                ret_dict[key] = ap_score
+                ret_str += "%-15.2f|" % ap_score
+            ret_str += "%-20s|" % (str(pred_class_occurrence[cur_class]) + "/" + str(gt_class_occurrence[cur_class]))
+            ret_str += "%-10.2f|" % np.average(iou_2d[cls_idx].flatten())
+            ret_str += "%-10.2f|" % np.average(pos_err[cls_idx].flatten())
+            ret_str += "%-10.2f|" % np.average(rot_err[cls_idx].flatten())
+            ret_str += "\n"
+        mAP = np.mean(AP, axis=0)
+        ret_str += "|%-18s|" % "mAP"
+        for diff_idx in range(num_difficulties):
+            diff_type = difficulty_types[diff_idx]
+            key = "AP_mean" + "/" + diff_type
+            ap_score = mAP[diff_idx]
+            ret_dict[key] = ap_score
+            ret_str += "%-15.2f|" % ap_score
+        ret_str += "%-20s|" % (
+            str(np.sum(list(pred_class_occurrence.values())))
+            + "/"
+            + str(np.sum(list(gt_class_occurrence.values())))
+            + " (Total)"
+        )
+        ret_str += "%-10.2f|" % np.average(iou_3d.flatten())
+        ret_str += "%-10.2f|" % np.average(pos_err.flatten())
+        ret_str += "%-10.2f|" % np.average(rot_err.flatten())
+        ret_str += "\n"
+
+        if print_ok:
+            print(ret_str)
+
+        ####################
+        ## pretty print (for excel sheet)
+        ####################
+        ret_header_str = "Class,Precision,Recall,AP_overall,distance_0_40,distance_40_50,distance_50_64,Occurrence (pred/gt),IOU_2D,Pos-RMSE,Rot-RMSE\n"
+        for cls_idx, cur_class in enumerate(classes):
+            ret_header_str += f"{cur_class},{np.mean(precision[cls_idx], axis=-1)[0] * 100:.2f},{np.mean(recall[cls_idx], axis=-1)[0] * 100:.2f},"
+            for diff_idx in range(num_difficulties):
+                diff_type = difficulty_types[diff_idx]
+                ap_score = AP[cls_idx, diff_idx]
+                ret_header_str += f"{ap_score:.2f},"
+            ret_header_str += f"{pred_class_occurrence[cur_class]}/{gt_class_occurrence[cur_class]},"
+            ret_header_str += f"{np.average(iou_2d[cls_idx].flatten()):.2f},"
+            ret_header_str += f"{np.average(pos_err[cls_idx].flatten()):.2f},"
+            ret_header_str += f"{np.average(rot_err[cls_idx].flatten()):.2f}\n"
+
+        ret_header_str += "mAP,,,"
+        for diff_idx in range(num_difficulties):
+            diff_type = difficulty_types[diff_idx]
+            ap_score = mAP[diff_idx]
+            ret_header_str += f"{ap_score:.2f},"
+        ret_header_str += f"{np.sum(list(pred_class_occurrence.values()))}/{np.sum(list(gt_class_occurrence.values()))},"
+        ret_header_str += f"{np.average(iou_2d.flatten()):.2f},"
+        ret_header_str += f"{np.average(pos_err.flatten()):.2f},"
+        ret_header_str += f"{np.average(rot_err.flatten()):.2f}\n"        
+
 
     # print pretty table results for excel sheet
     # print(ret_header_str)
@@ -642,15 +875,17 @@ def compute_iou3d(gt_annos, pred_annos, split_parts, with_heading):
 
 
 def compute_iou3d_cpu(gt_annos, pred_annos, prediction_type=None):
-    ious = []
+    ious_2d = []
+    ious_3d = []
     gt_num = len(gt_annos)
     for i in range(gt_num):
         gt_boxes = gt_annos[i]["boxes_3d"]
         pred_boxes = pred_annos[i]["boxes_3d"]
 
-        iou3d_part = rotate_iou_cpu_eval(gt_boxes, pred_boxes)
-        ious.append(iou3d_part)
-    return ious
+        iou2d_part, iou3d_part = rotate_iou_cpu_eval(gt_boxes, pred_boxes)
+        ious_3d.append(iou3d_part)
+        ious_2d.append(iou2d_part)
+    return ious_2d, ious_3d
 
 
 def get_attribute_by_name(attribute_list, attribute_name):
@@ -1247,5 +1482,6 @@ if __name__ == "__main__":
             use_superclass=False,
             difficulty_mode="OVERALL",
             prediction_type=prediction_type,
+            model_eval=1,
         )
         print(result_str)
