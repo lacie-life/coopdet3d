@@ -84,9 +84,9 @@ train_pipeline:
       prepare: 
         filter_by_difficulty: [-1]
         filter_by_min_points:
-          CAR: 0
-          WHEELER: 0
-          PEDESTRIAN: 0
+          CAR: 1
+          WHEELER: 1
+          PEDESTRIAN: 1
       classes: ${object_classes}
       sample_groups:
         CAR: 2
@@ -288,7 +288,7 @@ test_pipeline:
 
 data:
   samples_per_gpu: 4
-  workers_per_gpu: 1
+  workers_per_gpu: 4
   train:
     type: CBGSDataset
     dataset:

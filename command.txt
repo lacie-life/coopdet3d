@@ -10,6 +10,8 @@ configs/tumtraf_i/det/centerhead/lssfpn/camera/256x704/yolov8/default.yaml
 
 torchpack dist-run -np 1 python tools/visualize.py configs/tumtraf_i/det/centerhead/lssfpn/camera/256x704/yolov8/default.yaml --checkpoint weights/epoch_20.pth --split val --mode pred --out-dir viz_tumtraf_rgb
 
+torchpack dist-run -np 1 python tools/visualize.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml --checkpoint /home/lacie/Github/coopdet3d/runs/run_lidar_only/epoch_3.pth --split val --mode pred --out-dir viz_output/viz_tumtraf_lidar_2
+
 torchpack dist-run -np 1 python tools/train.py configs/tumtraf_i/det/centerhead/lssfpn/camera/256x704/yolov8/default.yaml --run-dir runs/run_2_cam_rgb_only
 
 torchpack dist-run -np 1 python tools/train.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml --run-dir runs/run_lidar_only

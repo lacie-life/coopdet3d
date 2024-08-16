@@ -1,10 +1,12 @@
 # 512x512
-voxel_size: [0.293, 0.293, 8]
+# voxel_size: [0.293, 0.293, 8]
+voxel_size: [0.1465, 0.1465, 8]
 # 768x768
 #voxel_size: [0.1953, 0.1953, 8]
 # 1024x1024
 #voxel_size: [0.1465, 0.1465, 8]
-point_cloud_range: [-75.0, -75.0, -8.0, 75.0, 75.0, 0.0]
+# point_cloud_range: [-75.0, -75.0, -8.0, 75.0, 75.0, 0.0]
+point_cloud_range: [0.0, -75.0, -8.0, 75.0, 0.0, 0.0]
 
 model:
   encoders:
