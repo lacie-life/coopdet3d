@@ -1,5 +1,8 @@
-voxel_size: [0.075, 0.075, 0.2]
-point_cloud_range: [-75.0, -75.0, -8.0, 75.0, 75.0, 0.0]
+# voxel_size: [0.075, 0.075, 0.2]
+# point_cloud_range: [-75.0, -75.0, -8.0, 75.0, 75.0, 0.0]
+
+voxel_size: [0.1465, 0.1465, 8]
+point_cloud_range: [0.0, -75.0, -8.0, 75.0, 0.0, 0.0]
 
 model:
   fuser:
@@ -49,8 +52,10 @@ model:
         in_channels: [128, 256, 512]
         out_channels: 256
       vtransform:
-        xbound: [-75.0, 75.0, 0.3]
-        ybound: [-75.0, 75.0, 0.3]
+        # xbound: [-75.0, 75.0, 0.3]
+        # ybound: [-75.0, 75.0, 0.3]
+        xbound: [0.0, 75.0, 0.0732421875]
+        ybound: [-75.0, 0.0, 0.0732421875]
     lidar:
       voxelize:
         point_cloud_range: ${point_cloud_range}

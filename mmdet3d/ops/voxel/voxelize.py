@@ -52,18 +52,26 @@ class _Voxelization(Function):
             voxels = points.new_zeros(size=(max_voxels, max_points, points.size(1)))
             coors = points.new_zeros(size=(max_voxels, 3), dtype=torch.int)
             num_points_per_voxel = points.new_zeros(size=(max_voxels,), dtype=torch.int)
-            voxel_num = hard_voxelize(
-                points,
-                voxels,
-                coors,
-                num_points_per_voxel,
-                voxel_size,
-                coors_range,
-                max_points,
-                max_voxels,
-                3,
-                deterministic,
-            )
+            try:
+                voxel_num = hard_voxelize(
+                    points,
+                    voxels,
+                    coors,
+                    num_points_per_voxel,
+                    voxel_size,
+                    coors_range,
+                    max_points,
+                    max_voxels,
+                    3,
+                    deterministic,
+                )
+                # print("Got voxel_num")
+                # print(points.size())
+                # print(voxel_num)
+            except RuntimeError:
+                print("RuntimeError")
+                print(points.size())
+                voxel_num = 0
             # select the valid voxels
             voxels_out = voxels[:voxel_num]
             coors_out = coors[:voxel_num]

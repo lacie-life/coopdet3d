@@ -17,6 +17,7 @@ model:
         point_cloud_range: ${point_cloud_range}
         voxel_size: ${voxel_size}
         max_voxels: [30000, 60000]
+        deterministic: false
       backbone:
         type: PointPillarsEncoder
         pts_voxel_encoder:

@@ -1,8 +1,10 @@
 export CUDA_VISIBLE_DEVICES=1
 
-torchpack dist-run -np 1 python tools/train.py configs/tumtraf_i/det/transfusion/secfpn/camera+lidar/yolov8/pointpillars.yaml  --load_from /home/ivpg/Lacie/Github/coopdet3d/weights/epoch_20_lidar_only.pth 
+torchpack dist-run -np 1 python tools/train.py configs/tumtraf_i/det/transfusion/secfpn/camera+lidar/yolov8/pointpillars.yaml  --load_from ./weights/epoch_20.pth 
 
 python ./tools/create_tumtraf_data.py --root-path /home/ivpg/Lacie/Github/coopdet3d/data/tumtraf_i --out-dir /home/ivpg/Lacie/Github/coopdet3d/data/tumtraf_i_mono_processed --splits training,validation
+
+torchpack dist-run -np 1 python tools/visualize.py configs/tumtraf_i/det/transfusion/secfpn/camera+lidar/yolov8/pointpillars.yaml --checkpoint weights/latest.pth --split val --mode pred --out-dir viz_tumtraf 
 
 torchpack dist-run -np 1 python tools/visualize.py configs/tumtraf_i/det/transfusion/secfpn/camera+lidar/yolov8/pointpillars.yaml --checkpoint weights/latest.pth --split val --mode pred --out-dir viz_tumtraf 
 
