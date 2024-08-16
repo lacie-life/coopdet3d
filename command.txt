@@ -21,3 +21,5 @@ torchpack dist-run -np 1 python tools/test.py ./configs/tumtraf_i/det/transfusio
 /home/lacie/Github/coopdet3d/configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml
 
 torchpack dist-run -np 1 python tools/inference_to_openlabel.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml --checkpoint /home/lacie/Github/coopdet3d/runs/run_lidar_only_2/epoch_20.pth --split val --out-dir openlabel_output/lidar_only_2/
+
+python tum-traffic-dataset-dev-kit/src/eval/evaluation.py --camera_id s110_camera_basler_south1_8mm --file_path_calibration_data /home/lacie/Github/coopdet3d/tum-traffic-dataset-dev-kit/calib/s110_camera_basler_south1_8mm.json --folder_path_ground_truth /home/lacie/Github/coopdet3d/data/tumtraf_i_v2/val/labels_point_clouds/s110_lidar_ouster_south --folder_path_predictions /home/lacie/Github/coopdet3d/openlabel_output/lidar_only_2 --object_min_points 0 --prediction_type lidar3d_supervised --prediction_format openlabel --use_ouster_lidar_only

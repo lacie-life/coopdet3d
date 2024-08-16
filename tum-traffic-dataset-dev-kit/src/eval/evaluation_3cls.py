@@ -30,9 +30,9 @@ from src.utils.perspective import parse_perspective
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 iou_threshold_dict = {
-    "CAR": 0.1,
-    "PEDESTRIAN": 0.1,
-    "WHEELER": 0.1,
+    "CAR": 0.5,
+    "PEDESTRIAN": 0.5,
+    "WHEELER": 0.5,
 }
 
 superclass_iou_threshold_dict = {"VEHICLE": 0.1, "PEDESTRIAN": 0.1, "BICYCLE": 0.1}  # 0.7  # 0.3  # 0.5
@@ -1482,6 +1482,6 @@ if __name__ == "__main__":
             use_superclass=False,
             difficulty_mode="OVERALL",
             prediction_type=prediction_type,
-            model_eval=1,
+            model_eval=0,
         )
         print(result_str)
