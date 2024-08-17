@@ -81,7 +81,8 @@ def main() -> None:
 
     for data in tqdm(dataflow):
         metas = data["metas"].data[0][0]
-        name = "{}".format(metas["timestamp"])
+        # name = "{}".format(metas["timestamp"])
+        name = "{}".format(metas["lidar_path"][0].split("/")[-1].split(".")[0])
 
         if args.mode == "pred" or args.mode == "combo":
             with torch.inference_mode():
@@ -165,7 +166,7 @@ def main() -> None:
                 image = mmcv.imread(image_path)
                 if args.mode == "combo":
                     visualize_camera_combo(
-                        os.path.join(args.out_dir, f"camera-{k}", f"{name}.png"),
+                        os.path.join(args.out_dir, f"camera-{k}", f"cam_{name}.png"),
                         image,
                         gtbboxes=gtbboxes,
                         bboxes=bboxes,
@@ -176,7 +177,7 @@ def main() -> None:
                     )
                 else:
                     visualize_camera(
-                        os.path.join(args.out_dir, f"camera-{k}", f"{name}.png"),
+                        os.path.join(args.out_dir, f"camera-{k}", f"cam_{name}.png"),
                         image,
                         bboxes=bboxes,
                         labels=labels,

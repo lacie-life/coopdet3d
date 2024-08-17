@@ -24,6 +24,8 @@ from mmdet.core import (
     build_sampler,
     multi_apply,
 )
+from mmengine.structures import InstanceData
+
 
 __all__ = ["TransFusionHead"]
 
@@ -455,7 +457,9 @@ class TransFusionHead(nn.Module):
         boxes_dict = self.bbox_coder.decode(
             score, rot, dim, center, height, vel
         )  # decode the prediction to real world metric bbox
+
         bboxes_tensor = boxes_dict[0]["bboxes"]
+        
         gt_bboxes_tensor = gt_bboxes_3d.tensor.to(score.device)
         # each layer should do label assign seperately.
         if self.auxiliary:
@@ -500,9 +504,17 @@ class TransFusionHead(nn.Module):
             max_overlaps=torch.cat([res.max_overlaps for res in assign_result_list]),
             labels=torch.cat([res.labels for res in assign_result_list]),
         )
+
+        # pred_instances = InstanceData(priors=bboxes_tensor)
+        # gt_instances = InstanceData(bboxes=gt_bboxes_tensor)
+        # sampling_result = self.bbox_sampler.sample(assign_result_ensemble,
+        #                                            pred_instances,
+        #                                            gt_instances)
+        
         sampling_result = self.bbox_sampler.sample(
             assign_result_ensemble, bboxes_tensor, gt_bboxes_tensor
         )
+
         pos_inds = sampling_result.pos_inds
         neg_inds = sampling_result.neg_inds
         assert len(pos_inds) + len(neg_inds) == num_proposals

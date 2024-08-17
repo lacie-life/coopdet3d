@@ -3,6 +3,7 @@ from mmdet.core.bbox.assigners import AssignResult, BaseAssigner
 from mmdet.core.bbox.match_costs import build_match_cost
 from mmdet.core.bbox.match_costs.builder import MATCH_COST
 from mmdet.core.bbox.iou_calculators import build_iou_calculator
+from mmengine.structures import InstanceData
 import torch
 
 try:
@@ -111,6 +112,9 @@ class HungarianAssigner3D(BaseAssigner):
 
         # 2. compute the weighted costs
         # see mmdetection/mmdet/core/bbox/match_costs/match_cost.py
+        # pred_instances = InstanceData(scores=cls_pred[0].T)
+        # gt_instances = InstanceData(labels=gt_labels)
+        # cls_cost = self.cls_cost(pred_instances, gt_instances)
         cls_cost = self.cls_cost(cls_pred[0].T, gt_labels)
         reg_cost = self.reg_cost(bboxes, gt_bboxes, train_cfg)
         iou = self.iou_calculator(bboxes, gt_bboxes)
@@ -118,6 +122,10 @@ class HungarianAssigner3D(BaseAssigner):
 
         # weighted sum of above three costs
         cost = cls_cost + reg_cost + iou_cost
+
+        cost = torch.where(
+            torch.isnan(cost),
+            torch.tensor([0.0]).cuda(), cost) # replace nan with 0
 
         # 3. do Hungarian matching on CPU using linear_sum_assignment
         cost = cost.detach().cpu()

@@ -844,6 +844,7 @@ class LoadPointsFromFile:
                 - points (:obj:`BasePoints`): Point clouds data.
         """
         lidar_path = results["lidar_path"]
+        # print(lidar_path)
         points = self._load_points(lidar_path)
         points = points.reshape(-1, self.load_dim)
         # TODO: make it more general

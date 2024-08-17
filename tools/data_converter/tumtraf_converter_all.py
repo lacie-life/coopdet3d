@@ -100,6 +100,7 @@ class TUMTraf2NuScenesAll(object):
             print(f'Processing s110_lidar_ouster_south')
 
             pcd_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south', '*')))
+            pcd_list_north = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_north', '*')))
             
             # pcd_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south_and_north_registered', '*')))
             
@@ -112,11 +113,23 @@ class TUMTraf2NuScenesAll(object):
                 self.save_lidar(pcd, os.path.join(self.point_cloud_save_dir, out_filename))
                 # print(f'Converting {pcd} to {os.path.join(self.point_cloud_save_dir, out_filename)}.bin')
                 pcd_list[idx] = os.path.join(self.point_cloud_save_dir, out_filename)+'.bin'
+            
+            for idx, pcd in enumerate(pcd_list_north):
+                # print(f'Converting {pcd} to .bin')
+                out_filename = pcd.split('/')
+                out_filename = out_filename[-1]
+                out_filename = out_filename[:-4]
+                # print(out_filename)
+                self.save_lidar(pcd, os.path.join(self.point_cloud_save_dir, out_filename))
+                # print(f'Converting {pcd} to {os.path.join(self.point_cloud_save_dir, out_filename)}.bin')
+                pcd_list_north[idx] = os.path.join(self.point_cloud_save_dir, out_filename)+'.bin'
                   
             img_south1_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'images', 's110_lidar_ouster_south', 's110_camera_basler_south1_8mm', '*')))
             img_south2_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'images', 's110_lidar_ouster_south', 's110_camera_basler_south2_8mm', '*')))
+            img_south1_list_north = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'images', 's110_lidar_ouster_north', 's110_camera_basler_south1_8mm', '*')))
             
             pcd_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_point_clouds', 's110_lidar_ouster_south', '*')))
+            pcd_labels_list_north = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_point_clouds', 's110_lidar_ouster_north', '*')))
             # pcd_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels', 's110_lidar_ouster_south_and_north_registered', '*')))
             
             # img_south1_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_images', 's110_camera_basler_south1_8mm', '*')))
@@ -124,11 +137,16 @@ class TUMTraf2NuScenesAll(object):
             
             img_south1_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_point_clouds', 's110_lidar_ouster_south', '*')))
             img_south2_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_point_clouds', 's110_lidar_ouster_south', '*')))
+            img_south1_labels_list_north = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels_point_clouds', 's110_lidar_ouster_north', '*')))
 
             # img_south1_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels', 's110_lidar_ouster_south_and_north_registered', '*')))
             # img_south2_labels_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'labels', 's110_lidar_ouster_south_and_north_registered', '*')))
 
-            infos_list = self._fill_infos(pcd_list, img_south1_list, img_south2_list, pcd_labels_list, img_south1_labels_list, img_south2_labels_list, test)
+            infos_list = self._fill_infos(pcd_list, pcd_list_north, 
+                                          img_south1_list, img_south2_list, img_south1_list_north, 
+                                          pcd_labels_list, pcd_labels_list_north, 
+                                          img_south1_labels_list, img_south2_labels_list, img_south1_labels_list_north, 
+                                          test)
 
             metadata = dict(version='r1')
 
@@ -151,7 +169,11 @@ class TUMTraf2NuScenesAll(object):
 
         print('\nFinished ...')
 
-    def _fill_infos(self, pcd_list, img_south1_list, img_south2_list, pcd_labels_list, img_south1_labels_list, img_south2_labels_list, test=False):
+    def _fill_infos(self, pcd_list, pcd_list_north, 
+                    img_south1_list, img_south2_list, img_south1_list_north, 
+                    pcd_labels_list, pcd_labels_list_north, 
+                    img_south1_labels_list, img_south2_labels_list, img_south1_labels_list_north, 
+                    test=False):
         infos_list = []
 
         # Maybe not use this
@@ -200,6 +222,8 @@ class TUMTraf2NuScenesAll(object):
                                          [ 0.01785498, -0.88162857, -0.4716052,   0.29454409],
                                          [ 0.,          0.,          0.,          1.        ]], dtype=np.float32)
         
+        south12lidar_north = south12lidar_north[:-1, :] 
+        
         # Camera south 2 intrinsics
         south2intrinsics = np.asarray([[1029.2795655594014, 0.0, 982.0311857478633],
                                        [0.0, 1122.2781391971948, 1129.1480997238505],
@@ -220,7 +244,6 @@ class TUMTraf2NuScenesAll(object):
         south22lidar = south22lidar[:-1, :]
 
         print(f'Processing South1 camera')
-
         for i, pcd_path in enumerate(pcd_list):
 
             json1_file = open(pcd_labels_list[i])
@@ -313,7 +336,6 @@ class TUMTraf2NuScenesAll(object):
             infos_list.append(info)
 
         print(f'Processing South2 camera')
-
         for i, pcd_path in enumerate(pcd_list):
 
             json1_file = open(pcd_labels_list[i])
@@ -386,6 +408,98 @@ class TUMTraf2NuScenesAll(object):
                     # Merge classes
                     gt_names.append(self.class_map[object_data['type']])
                     
+                    velocity.append([0, 0])
+                    valid_flag.append(True)
+
+                    for n in object_data['cuboid']['attributes']['num']:
+                        if n['name'] == 'num_points':
+                            num_lidar_pts.append(n['val'])
+                    
+                    num_radar_pts.append(0)
+
+                gt_boxes = np.asarray(gt_boxes, dtype=np.float32)
+                info['gt_boxes'] = gt_boxes
+                info['gt_names'] = np.array(gt_names)
+                info["gt_velocity"] = np.array(velocity).reshape(-1, 2)
+                info["num_lidar_pts"] = np.array(num_lidar_pts)
+                info["num_radar_pts"] = np.array(num_radar_pts)
+                info["valid_flag"] = np.array(valid_flag, dtype=bool)
+
+            infos_list.append(info)
+
+        print(f'Processing North Lidar')
+        for i, pcd_path in enumerate(pcd_list_north):
+
+            json1_file = open(pcd_labels_list_north[i])
+            json1_str = json1_file.read()
+            lidar_annotation = json.loads(json1_str)
+
+            lidar_anno_frame = {}
+
+            for j in lidar_annotation['openlabel']['frames']:
+                lidar_anno_frame = lidar_annotation['openlabel']['frames'][j]
+
+            info = {
+                "lidar_path": pcd_path,
+                "lidar_anno_path": pcd_labels_list_north[i],
+                "sweeps": [],
+                "cams": dict(),
+                "lidar2ego": lidar2ego,
+                "timestamp": lidar_anno_frame['frame_properties']['timestamp'],
+                "location": lidar_anno_frame['frame_properties']['point_cloud_file_name'].split("_")[2],
+            }
+
+            json2_file = open(img_south1_labels_list_north[i])
+            json2_str = json2_file.read()
+            south1_annotation = json.loads(json2_str)
+
+            south1_anno_frame = {}
+
+            for k in south1_annotation['openlabel']['frames']:
+                south1_anno_frame = south1_annotation['openlabel']['frames'][k]
+
+            img_south1_info = {
+                "data_path": img_south1_list_north[i],
+                "type": 's110_camera_basler_south1_8mm',
+                "lidar2image": lidar_north2s1image,
+                "sensor2ego": south12ego,
+                "sensor2lidar": south12lidar_north,
+                "camera_intrinsics": south1intrinsics,
+                "timestamp": south1_anno_frame['frame_properties']['timestamp'],
+            }
+            
+            info["cams"].update({'s110_camera_basler_south1_8mm': img_south1_info})
+
+
+            # obtain annotation
+
+            if not test:
+                gt_boxes = []
+                gt_names = []
+                velocity = []
+                valid_flag = []
+                num_lidar_pts = []
+                num_radar_pts = []
+
+                for id in lidar_anno_frame['objects']:
+                    object_data = lidar_anno_frame['objects'][id]['object_data']
+                    
+                    loc = np.asarray(object_data['cuboid']['val'][:3], dtype=np.float32)
+                    dim = np.asarray(object_data['cuboid']['val'][7:], dtype=np.float32)
+                    rot = np.asarray(object_data['cuboid']['val'][3:7], dtype=np.float32) # Quaternion in x,y,z,w
+
+                    rot_temp = Rotation.from_quat(rot)
+                    rot_temp = rot_temp.as_euler('xyz', degrees=False)
+
+                    yaw = np.asarray(rot_temp[2], dtype=np.float32)
+
+                    gt_box = np.concatenate([loc, dim, -yaw], axis=None)
+
+                    gt_boxes.append(gt_box)
+
+                    # Merge classes
+                    gt_names.append(self.class_map[object_data['type']])
+
                     velocity.append([0, 0])
                     valid_flag.append(True)
 
