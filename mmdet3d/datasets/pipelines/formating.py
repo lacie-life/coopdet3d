@@ -296,12 +296,17 @@ class Collect3D:
                 - ``metas``
         """
         data = {}
+        # print("Check keys")
         for key in self.keys:
+            # print(key)
             if key not in self.meta_keys:
                 data[key] = results[key]
+        # print("Check meta keys")
         for key in self.meta_keys:
+            # print(key)
             if key in results:
                 val = np.array(results[key])
+                # print(val)
                 if isinstance(results[key], list):
                     data[key] = DC(to_tensor(val), stack=True)
                 else:

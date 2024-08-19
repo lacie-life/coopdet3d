@@ -1,17 +1,19 @@
 dataset_type: TUMTrafNuscDataset
 #dataset_root: data/tumtraf_v2x_cooperative_perception_dataset_processed/
 # dataset_root: data/tumtraf_i_v2_lidar_3cls_processed/
-dataset_root: data/tumtraf_i_v2_all_3cls_processed/
+dataset_root: data/tumtraf_i_v2_all_3cls_processed_new/
 # dataset_root: data/tumtraf_i_v2_fusion_3cls_processed/
 # dataset_root: data/tumtraf_i_mono_processed/
 gt_paste_stop_epoch: -1
-reduce_beams: 32
+reduce_beams: null
 load_dim: 5
 use_dim: 5
 load_augmented: null
 
-point_cloud_range: [-75.0, -75.0, -8, 75.0, 75.0, 0]
-voxel_size: [0.075, 0.075, 0.2]
+point_cloud_range: [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+voxel_size: [0.13671875, 0.13671875, 8]
+# point_cloud_range: [-70.0, -70.0, -10.0, 70.0, 70.0, -2.0]
+# voxel_size: [0.2734375, 0.2734375, 8]
 image_size: [256, 704]
 
 augment2d:
@@ -153,6 +155,7 @@ train_pipeline:
       - gt_bboxes_3d
       - gt_labels_3d
     meta_keys:
+      - pc_range
       - camera_intrinsics
       - camera2ego
       - lidar2ego
@@ -219,6 +222,7 @@ val_pipeline:
       - gt_bboxes_3d
       - gt_labels_3d
     meta_keys:
+      - pc_range
       - camera_intrinsics
       - camera2ego
       - lidar2ego
@@ -278,6 +282,7 @@ test_pipeline:
       - img
       - points
     meta_keys:
+      - pc_range
       - camera_intrinsics
       - camera2ego
       - lidar2ego
@@ -288,8 +293,8 @@ test_pipeline:
       - lidar_aug_matrix
 
 data:
-  samples_per_gpu: 4
-  workers_per_gpu: 4
+  samples_per_gpu: 3
+  workers_per_gpu: 3
   train:
     type: CBGSDataset
     dataset:

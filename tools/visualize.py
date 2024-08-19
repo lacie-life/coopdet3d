@@ -82,7 +82,12 @@ def main() -> None:
     for data in tqdm(dataflow):
         metas = data["metas"].data[0][0]
         # name = "{}".format(metas["timestamp"])
-        name = "{}".format(metas["lidar_path"][0].split("/")[-1].split(".")[0])
+        print("Lidar path: ", metas["lidar_path"])
+        name = "{}".format(metas["lidar_path"].split("/")[-1].split(".")[0])
+        print("Save name:", name)
+
+        pc_range = data["pc_range"].data[0][0][0].numpy().tolist()
+        print("visual pc_range", pc_range)
 
         if args.mode == "pred" or args.mode == "combo":
             with torch.inference_mode():
@@ -195,8 +200,8 @@ def main() -> None:
                 bboxes=bboxes,
                 gtlabels=gtlabels,
                 labels=labels,
-                xlim=[cfg.point_cloud_range[d] for d in [0, 3]],
-                ylim=[cfg.point_cloud_range[d] for d in [1, 4]],
+                xlim=[pc_range[d] for d in [0, 3]],
+                ylim=[pc_range[d] for d in [1, 4]],
                 classes=cfg.object_classes,
             )
         else:
@@ -205,8 +210,8 @@ def main() -> None:
                 lidar,
                 bboxes=bboxes,
                 labels=labels,
-                xlim=[cfg.point_cloud_range[d] for d in [0, 3]],
-                ylim=[cfg.point_cloud_range[d] for d in [1, 4]],
+                xlim=[pc_range[d] for d in [0, 3]],
+                ylim=[pc_range[d] for d in [1, 4]],
                 classes=cfg.object_classes,
             )
 

@@ -16,12 +16,16 @@ from mmdet3d.datasets import build_dataset
 from mmdet3d.models import build_model
 from mmdet3d.utils import get_root_logger, convert_sync_batchnorm, recursive_eval
 
+# import debugpy
+# debugpy.listen(5678)
+# debugpy.wait_for_client()
+
 
 def main():
     dist.init()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("config", metavar="FILE", help="config file")
+    parser.add_argument("--config", metavar="FILE", default="configs/tumtraf_i/det/transfusion/secfpn/camera+lidar/yolov8/pointpillars.yaml", help="config file")
     parser.add_argument("--run-dir", metavar="DIR", help="run directory")
     args, opts = parser.parse_known_args()
 
@@ -31,13 +35,15 @@ def main():
     cfg = Config(recursive_eval(configs), filename=args.config)
 
     torch.backends.cudnn.benchmark = cfg.cudnn_benchmark
-    torch.cuda.set_device(dist.local_rank())
+    # torch.cuda.set_device(dist.local_rank())
+    torch.cuda.set_device(0)
 
     if args.run_dir is None:
         args.run_dir = auto_set_run_dir()
     else:
         set_run_dir(args.run_dir)
     cfg.run_dir = args.run_dir
+    cfg.load_from = "/home/lacie/Github/coopdet3d/runs/run_lidar_only_all/epoch_9.pth"
 
     # dump config
     cfg.dump(os.path.join(cfg.run_dir, "configs.yaml"))

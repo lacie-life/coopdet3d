@@ -70,6 +70,7 @@ class BEVFusion(Base3DFusionModel):
             else:
                 print("USING DYNAMICSCATTER")
                 voxelize_module = DynamicScatter(**encoders["lidar"]["voxelize"])
+            
             self.encoders["lidar"] = nn.ModuleDict(
                 {
                     "voxelize": voxelize_module,
@@ -112,6 +113,7 @@ class BEVFusion(Base3DFusionModel):
         self,
         x,
         points,
+        pc_range,
         camera2ego,
         lidar2ego,
         lidar2camera,
@@ -148,18 +150,30 @@ class BEVFusion(Base3DFusionModel):
         )
         return x
 
-    def extract_lidar_features(self, x) -> torch.Tensor:
-        feats, coords, sizes = self.voxelize(x)
-        batch_size = coords[-1, 0] + 1
-        x = self.encoders["lidar"]["backbone"](feats, coords, batch_size, sizes=sizes)
+    def extract_lidar_features(self, x, pc_range) -> torch.Tensor:
+        print("Extract Lidar Features")
+        print(pc_range)
+        feats, coords, sizes = self.voxelize(x, pc_range)
+        print("Coord", len(coords))
+        print(len(sizes))
+        print(len(feats))
+        # print(coords[-1, 0])
+        # batch_size = coords[-1, 0] + 1
+        # batch_size = 4 # hardcoded for now
+        batch_size = len(coords)
+        print(batch_size)
+        x = self.encoders["lidar"]["backbone"](feats, coords, batch_size, sizes=sizes, pc_range=pc_range)
         return x
 
     @torch.no_grad()
     @force_fp32()
-    def voxelize(self, points):
+    def voxelize(self, points, pc_range):
         feats, coords, sizes = [], [], []
         for k, res in enumerate(points):
-            ret = self.encoders["lidar"]["voxelize"](res)
+            print(res.size())
+            ret = self.encoders["lidar"]["voxelize"](res, pc_range[k])
+            print("Voxelize")
+            print(len(ret))
             if len(ret) == 3:
                 # hard voxelize
                 f, c, n = ret
@@ -172,15 +186,21 @@ class BEVFusion(Base3DFusionModel):
             if n is not None:
                 sizes.append(n)
 
-        feats = torch.cat(feats, dim=0)
-        coords = torch.cat(coords, dim=0)
-        if len(sizes) > 0:
-            sizes = torch.cat(sizes, dim=0)
-            if self.voxelize_reduce:
-                feats = feats.sum(dim=1, keepdim=False) / sizes.type_as(feats).view(
-                    -1, 1
-                )
-                feats = feats.contiguous()
+        print("===Voxelize===")
+        print(len(feats))
+        print(len(coords))
+        print(len(sizes))
+
+
+        # feats = torch.cat(feats, dim=0)
+        # coords = torch.cat(coords, dim=0)
+        # if len(sizes) > 0:
+        #     sizes = torch.cat(sizes, dim=0)
+        #     if self.voxelize_reduce: # default False
+        #         feats = feats.sum(dim=1, keepdim=False) / sizes.type_as(feats).view(
+        #             -1, 1
+        #         )
+        #         feats = feats.contiguous()
 
         return feats, coords, sizes
 
@@ -189,6 +209,7 @@ class BEVFusion(Base3DFusionModel):
         self,
         img,
         points,
+        pc_range,
         camera2ego,
         lidar2ego,
         lidar2camera,
@@ -206,9 +227,15 @@ class BEVFusion(Base3DFusionModel):
         if isinstance(img, list):
             raise NotImplementedError
         else:
+            print("====BEVFusion Forward=====")
+            print(points[0].shape)
+
+            print("PC Range", pc_range)
+
             outputs = self.forward_single(
                 img,
                 points,
+                pc_range,
                 camera2ego,
                 lidar2ego,
                 lidar2camera,
@@ -230,6 +257,7 @@ class BEVFusion(Base3DFusionModel):
         self,
         img,
         points,
+        pc_range,
         camera2ego,
         lidar2ego,
         lidar2camera,
@@ -252,6 +280,7 @@ class BEVFusion(Base3DFusionModel):
                 feature = self.extract_camera_features(
                     img,
                     points,
+                    pc_range,
                     camera2ego,
                     lidar2ego,
                     lidar2camera,
@@ -262,14 +291,18 @@ class BEVFusion(Base3DFusionModel):
                     lidar_aug_matrix,
                     metas,
                 )
-                #print(feature.size())
-                #visualize_feature_map_cam(feature)
+                print("Camera feature")
+                print(feature.size())
+                # visualize_feature_map_cam(feature)
             elif sensor == "lidar":
-                feature = self.extract_lidar_features(points)
-                #print(feature.size())
-                #visualize_feature_map_lidar(feature)
+                print("Lidar feature")
+                print(points[0].shape)
+                feature = self.extract_lidar_features(points, pc_range)
+                print(feature.size())
+                # visualize_feature_map_lidar(feature)
             else:
                 raise ValueError(f"unsupported sensor: {sensor}")
+            
             features.append(feature)
 
         if not self.training:
@@ -286,13 +319,15 @@ class BEVFusion(Base3DFusionModel):
         x = self.decoder["backbone"](x)
         x = self.decoder["neck"](x)
 
-        #visualize_feature_map_lidar(x)
+        # visualize_feature_map_lidar(x)
         if self.training:
             outputs = {}
             for type, head in self.heads.items():
                 if type == "object":
-                    pred_dict = head(x, metas)
-                    losses = head.loss(gt_bboxes_3d, gt_labels_3d, pred_dict)
+                    print("Object Head")
+                    print("pc_range", pc_range)
+                    pred_dict = head(x, pc_range, metas)
+                    losses = head.loss(gt_bboxes_3d, gt_labels_3d, pred_dict, pc_range)
                 elif type == "map":
                     losses = head(x, gt_masks_bev)
                 else:
@@ -307,8 +342,8 @@ class BEVFusion(Base3DFusionModel):
             outputs = [{} for _ in range(batch_size)]
             for type, head in self.heads.items():
                 if type == "object":
-                    pred_dict = head(x, metas)
-                    bboxes = head.get_bboxes(pred_dict, metas)
+                    pred_dict = head(x, pc_range, metas)
+                    bboxes = head.get_bboxes(pred_dict, pc_range, metas)
                     for k, (boxes, scores, labels) in enumerate(bboxes):
                         outputs[k].update(
                             {

@@ -20,4 +20,11 @@ class ConvFuser(nn.Sequential):
         )
 
     def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
+        # shape_1 = inputs[0].shape
+        # shape_2 = inputs[1].shape
+
+        # if shape_1 != shape_2:
+        #     inputs[1] = nn.functional.interpolate(
+        #         inputs[1], size=shape_1[-2:], mode="bilinear", align_corners=False
+        #     )
         return super().forward(torch.cat(inputs, dim=1))

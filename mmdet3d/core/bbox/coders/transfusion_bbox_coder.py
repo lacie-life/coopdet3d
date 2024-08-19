@@ -21,10 +21,18 @@ class TransFusionBBoxCoder(BaseBBoxCoder):
         self.score_threshold = score_threshold
         self.code_size = code_size
 
-    def encode(self, dst_boxes):
+    def encode(self, dst_boxes, pc_range=None):
+        if pc_range is None:
+            self.pc_range = self.pc_range
+        else:
+            pc_range = pc_range.squeeze().tolist()
+
+        print("TransFusionBBoxCoder encode")
+        print("pc_range", pc_range)
+
         targets = torch.zeros([dst_boxes.shape[0], self.code_size]).to(dst_boxes.device)
-        targets[:, 0] = (dst_boxes[:, 0] - self.pc_range[0]) / (self.out_size_factor * self.voxel_size[0])
-        targets[:, 1] = (dst_boxes[:, 1] - self.pc_range[1]) / (self.out_size_factor * self.voxel_size[1])
+        targets[:, 0] = (dst_boxes[:, 0] - pc_range[0]) / (self.out_size_factor * self.voxel_size[0])
+        targets[:, 1] = (dst_boxes[:, 1] - pc_range[1]) / (self.out_size_factor * self.voxel_size[1])
         # targets[:, 2] = (dst_boxes[:, 2] - self.post_center_range[2]) / (self.post_center_range[5] - self.post_center_range[2])
         targets[:, 3] = dst_boxes[:, 3].log()
         targets[:, 4] = dst_boxes[:, 4].log()
@@ -36,7 +44,7 @@ class TransFusionBBoxCoder(BaseBBoxCoder):
             targets[:, 8:10] = dst_boxes[:, 7:]
         return targets
 
-    def decode(self, heatmap, rot, dim, center, height, vel, filter=False):
+    def decode(self, heatmap, rot, dim, center, height, vel, pc_range, filter=False):
         """Decode bboxes.
         Args:
             heat (torch.Tensor): Heatmap with the shape of [B, num_cls, num_proposals].
@@ -57,9 +65,14 @@ class TransFusionBBoxCoder(BaseBBoxCoder):
         final_preds = heatmap.max(1, keepdims=False).indices
         final_scores = heatmap.max(1, keepdims=False).values
 
+        print("TransFusionBBoxCoder decode")
+        print("pc_range", pc_range)
+
+        pc_range = pc_range.squeeze().tolist()
+
         # change size to real world metric
-        center[:, 0, :] = center[:, 0, :] * self.out_size_factor * self.voxel_size[0] + self.pc_range[0]
-        center[:, 1, :] = center[:, 1, :] * self.out_size_factor * self.voxel_size[1] + self.pc_range[1]
+        center[:, 0, :] = center[:, 0, :] * self.out_size_factor * self.voxel_size[0] + pc_range[0]
+        center[:, 1, :] = center[:, 1, :] * self.out_size_factor * self.voxel_size[1] + pc_range[1]
         # center[:, 2, :] = center[:, 2, :] * (self.post_center_range[5] - self.post_center_range[2]) + self.post_center_range[2]
         dim[:, 0, :] = dim[:, 0, :].exp()
         dim[:, 1, :] = dim[:, 1, :].exp()

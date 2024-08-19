@@ -214,7 +214,7 @@ class TransFusionHead(nn.Module):
                 build_assigner(res) for res in self.train_cfg.assigner
             ]
 
-    def forward_single(self, inputs, img_inputs, metas):
+    def forward_single(self, inputs, pc_range, img_inputs, metas):
         """Forward function for CenterPoint.
         Args:
             inputs (torch.Tensor): Input feature map with the shape of
@@ -256,15 +256,26 @@ class TransFusionHead(nn.Module):
                 :,
                 9,
             ] = F.max_pool2d(heatmap[:, 9], kernel_size=1, stride=1, padding=0)
+        
         elif self.test_cfg["dataset"] == "tumtraf_nusc":  # for tumtraf_i with 9 classes#
+            # local_max[
+            #     :,
+            #     7,
+            # ] = F.max_pool2d(heatmap[:, 7], kernel_size=1, stride=1, padding=0)
+            # local_max[
+            #     :,
+            #     8,
+            # ] = F.max_pool2d(heatmap[:, 8], kernel_size=1, stride=1, padding=0)
+
             local_max[
                 :,
-                7,
-            ] = F.max_pool2d(heatmap[:, 7], kernel_size=1, stride=1, padding=0)
+                1,
+            ] = F.max_pool2d(heatmap[:, 1], kernel_size=1, stride=1, padding=0)
             local_max[
                 :,
-                8,
-            ] = F.max_pool2d(heatmap[:, 8], kernel_size=1, stride=1, padding=0)
+                2,
+            ] = F.max_pool2d(heatmap[:, 2], kernel_size=1, stride=1, padding=0) # for tumtraf-i with 3 classes#
+        
         elif self.test_cfg["dataset"] == "tumtraf_v2x_nusc":  # for tumtraf-v2x with 6 classes#
             local_max[
                 :,
@@ -274,6 +285,7 @@ class TransFusionHead(nn.Module):
                 :,
                 5,
             ] = F.max_pool2d(heatmap[:, 5], kernel_size=1, stride=1, padding=0)
+        
         elif self.test_cfg["dataset"] == "Waymo":  # for Pedestrian & Cyclist in Waymo
             local_max[
                 :,
@@ -283,6 +295,7 @@ class TransFusionHead(nn.Module):
                 :,
                 2,
             ] = F.max_pool2d(heatmap[:, 2], kernel_size=1, stride=1, padding=0)
+        
         heatmap = heatmap * (heatmap == local_max)
         heatmap = heatmap.view(batch_size, heatmap.shape[1], -1)
 
@@ -360,7 +373,7 @@ class TransFusionHead(nn.Module):
                 new_res[key] = ret_dicts[0][key]
         return [new_res]
 
-    def forward(self, feats, metas):
+    def forward(self, feats, pc_range, metas):
         """Forward pass.
         Args:
             feats (list[torch.Tensor]): Multi-level features, e.g.,
@@ -370,16 +383,17 @@ class TransFusionHead(nn.Module):
         """
         if isinstance(feats, torch.Tensor):
             feats = [feats]
-        res = multi_apply(self.forward_single, feats, [None], [metas])
+        res = multi_apply(self.forward_single, feats, pc_range, [None], [metas])
         assert len(res) == 1, "only support one level features."
         return res
 
-    def get_targets(self, gt_bboxes_3d, gt_labels_3d, preds_dict):
+    def get_targets(self, gt_bboxes_3d, gt_labels_3d, preds_dict, pc_range):
         """Generate training targets.
         Args:
             gt_bboxes_3d (:obj:`LiDARInstance3DBoxes`): Ground truth gt boxes.
             gt_labels_3d (torch.Tensor): Labels of boxes.
             preds_dicts (tuple of dict): first index by layer (default 1)
+            pc_range (list): point cloud range.
         Returns:
             tuple[torch.Tensor]: Tuple of target including \
                 the following results in order.
@@ -398,12 +412,14 @@ class TransFusionHead(nn.Module):
             list_of_pred_dict.append(pred_dict)
 
         assert len(gt_bboxes_3d) == len(list_of_pred_dict)
-
+        print("Get targets")
+        print("pc_range", pc_range)
         res_tuple = multi_apply(
             self.get_targets_single,
             gt_bboxes_3d,
             gt_labels_3d,
             list_of_pred_dict,
+            pc_range,
             np.arange(len(gt_labels_3d)),
         )
         labels = torch.cat(res_tuple[0], dim=0)
@@ -425,7 +441,7 @@ class TransFusionHead(nn.Module):
             heatmap,
         )
 
-    def get_targets_single(self, gt_bboxes_3d, gt_labels_3d, preds_dict, batch_idx):
+    def get_targets_single(self, gt_bboxes_3d, gt_labels_3d, preds_dict, pc_range, batch_idx):
         """Generate training targets for a single sample.
         Args:
             gt_bboxes_3d (:obj:`LiDARInstance3DBoxes`): Ground truth gt boxes.
@@ -455,7 +471,7 @@ class TransFusionHead(nn.Module):
             vel = None
 
         boxes_dict = self.bbox_coder.decode(
-            score, rot, dim, center, height, vel
+            score, rot, dim, center, height, vel, pc_range
         )  # decode the prediction to real world metric bbox
 
         bboxes_tensor = boxes_dict[0]["bboxes"]
@@ -536,7 +552,7 @@ class TransFusionHead(nn.Module):
 
         # both pos and neg have classification loss, only pos has regression and iou loss
         if len(pos_inds) > 0:
-            pos_bbox_targets = self.bbox_coder.encode(sampling_result.pos_gt_bboxes)
+            pos_bbox_targets = self.bbox_coder.encode(sampling_result.pos_gt_bboxes, pc_range)
 
             bbox_targets[pos_inds, :] = pos_bbox_targets
             bbox_weights[pos_inds, :] = 1.0
@@ -559,7 +575,10 @@ class TransFusionHead(nn.Module):
             [gt_bboxes_3d.gravity_center, gt_bboxes_3d.tensor[:, 3:]], dim=1
         ).to(device)
         grid_size = torch.tensor(self.train_cfg["grid_size"])
-        pc_range = torch.tensor(self.train_cfg["point_cloud_range"])
+        # pc_range = torch.tensor(self.train_cfg["point_cloud_range"])
+        pc_range = torch.tensor(pc_range.squeeze().tolist()).to(device)
+        print("pc_range", pc_range)
+        
         voxel_size = torch.tensor(self.train_cfg["voxel_size"])
         feature_map_size = (
             grid_size[:2] // self.train_cfg["out_size_factor"]
@@ -615,7 +634,7 @@ class TransFusionHead(nn.Module):
         )
 
     @force_fp32(apply_to=("preds_dicts"))
-    def loss(self, gt_bboxes_3d, gt_labels_3d, preds_dicts, **kwargs):
+    def loss(self, gt_bboxes_3d, gt_labels_3d, preds_dicts, pc_range, **kwargs):
         """Loss function for CenterHead.
         Args:
             gt_bboxes_3d (list[:obj:`LiDARInstance3DBoxes`]): Ground
@@ -634,7 +653,7 @@ class TransFusionHead(nn.Module):
             num_pos,
             matched_ious,
             heatmap,
-        ) = self.get_targets(gt_bboxes_3d, gt_labels_3d, preds_dicts[0])
+        ) = self.get_targets(gt_bboxes_3d, gt_labels_3d, preds_dicts[0], pc_range)
         if hasattr(self, "on_the_image_mask"):
             label_weights = label_weights * self.on_the_image_mask
             bbox_weights = bbox_weights * self.on_the_image_mask[:, :, None]
@@ -742,7 +761,7 @@ class TransFusionHead(nn.Module):
 
         return loss_dict
 
-    def get_bboxes(self, preds_dicts, metas, img=None, rescale=False, for_roi=False):
+    def get_bboxes(self, preds_dicts, pc_range, metas, img=None, rescale=False, for_roi=False):
         """Generate bboxes from bbox head predictions.
         Args:
             preds_dicts (tuple[list[dict]]): Prediction results.
@@ -775,27 +794,29 @@ class TransFusionHead(nn.Module):
                 batch_center,
                 batch_height,
                 batch_vel,
+                pc_range,
                 filter=True,
             )
 
             if self.test_cfg["dataset"] == "nuScenes" or self.test_cfg["dataset"] == "tumtraf_nusc":
                 self.tasks = [
                     dict(
-                        num_class=8,
+                        num_class=1,
                         class_names=[],
-                        indices=[0, 1, 2, 3, 4, 5, 6, 7],
+                        # indices=[0, 1, 2, 3, 4, 5, 6, 7],
+                        indices=[0],
                         radius=-1,
                     ),
                     dict(
                         num_class=1,
-                        class_names=["pedestrian"],
-                        indices=[8],
+                        class_names=["PEDESTRIAN"],
+                        indices=[2],
                         radius=0.175,
                     ),
                     dict(
                         num_class=1,
-                        class_names=["traffic_cone"],
-                        indices=[9],
+                        class_names=["WHEELER"],
+                        indices=[1],
                         radius=0.175,
                     ),
                 ]

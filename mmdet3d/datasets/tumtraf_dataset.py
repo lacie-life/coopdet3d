@@ -147,7 +147,12 @@ class TUMTrafNuscDataset(Custom3DDataset):
         return data_infos
 
     def get_data_info(self, index: int) -> Dict[str, Any]:
+
+        print("=====Getting data info========")
         info = self.data_infos[index]
+
+        print(info["lidar_path"])
+        print(info["pc_range"])
 
         data = dict(
             lidar_path=info["lidar_path"],
@@ -158,6 +163,7 @@ class TUMTrafNuscDataset(Custom3DDataset):
 
         # lidar to ego transform
         data["lidar2ego"] = info["lidar2ego"]
+        data["pc_range"] = info["pc_range"]
 
         if self.modality["use_camera"]:
             data["image_paths"] = []
@@ -169,6 +175,8 @@ class TUMTrafNuscDataset(Custom3DDataset):
 
             for _, camera_info in info["cams"].items():
                 data["image_paths"].append(camera_info["data_path"])
+
+                print(data["image_paths"])
 
                 # lidar to camera transform
                 camera2lidar = camera_info["sensor2lidar"]
@@ -198,6 +206,9 @@ class TUMTrafNuscDataset(Custom3DDataset):
         else:
             annos = self.get_ann_info(index)
         data["ann_info"] = annos
+
+        print("Data gotten")
+
         return data
 
     def get_ann_info(self, index):

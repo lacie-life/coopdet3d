@@ -323,25 +323,25 @@ class GlobalRotScaleTrans:
     def __call__(self, data: Dict[str, Any]) -> Dict[str, Any]:
         transform = np.eye(4).astype(np.float32)
 
-        if self.is_train:
-            scale = random.uniform(*self.resize_lim)
-            theta = random.uniform(*self.rot_lim)
-            translation = np.array([random.normal(0, self.trans_lim) for i in range(3)])
-            rotation = np.eye(3)
+        # if self.is_train:
+        #     scale = random.uniform(*self.resize_lim)
+        #     theta = random.uniform(*self.rot_lim)
+        #     translation = np.array([random.normal(0, self.trans_lim) for i in range(3)])
+        #     rotation = np.eye(3)
 
-            if "points" in data:
-                data["points"].rotate(-theta)
-                data["points"].translate(translation)
-                data["points"].scale(scale)
+        #     if "points" in data:
+        #         data["points"].rotate(-theta)
+        #         data["points"].translate(translation)
+        #         data["points"].scale(scale)
 
-            gt_boxes = data["gt_bboxes_3d"]
-            rotation = rotation @ gt_boxes.rotate(theta).numpy()
-            gt_boxes.translate(translation)
-            gt_boxes.scale(scale)
-            data["gt_bboxes_3d"] = gt_boxes
+        #     gt_boxes = data["gt_bboxes_3d"]
+        #     rotation = rotation @ gt_boxes.rotate(theta).numpy()
+        #     gt_boxes.translate(translation)
+        #     gt_boxes.scale(scale)
+        #     data["gt_bboxes_3d"] = gt_boxes
 
-            transform[:3, :3] = rotation.T * scale
-            transform[:3, 3] = translation * scale
+        #     transform[:3, :3] = rotation.T * scale
+        #     transform[:3, 3] = translation * scale
 
         data["lidar_aug_matrix"] = transform
         return data
@@ -649,23 +649,23 @@ class RandomFlip3D:
         flip_vertical = random.choice([0, 1])
 
         rotation = np.eye(3)
-        if flip_horizontal:
-            rotation = np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]) @ rotation
-            if "points" in data:
-                data["points"].flip("horizontal")
-            if "gt_bboxes_3d" in data:
-                data["gt_bboxes_3d"].flip("horizontal")
-            if "gt_masks_bev" in data:
-                data["gt_masks_bev"] = data["gt_masks_bev"][:, :, ::-1].copy()
+        # if flip_horizontal:
+        #     rotation = np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]) @ rotation
+        #     if "points" in data:
+        #         data["points"].flip("horizontal")
+        #     if "gt_bboxes_3d" in data:
+        #         data["gt_bboxes_3d"].flip("horizontal")
+        #     if "gt_masks_bev" in data:
+        #         data["gt_masks_bev"] = data["gt_masks_bev"][:, :, ::-1].copy()
 
-        if flip_vertical:
-            rotation = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ rotation
-            if "points" in data:
-                data["points"].flip("vertical")
-            if "gt_bboxes_3d" in data:
-                data["gt_bboxes_3d"].flip("vertical")
-            if "gt_masks_bev" in data:
-                data["gt_masks_bev"] = data["gt_masks_bev"][:, ::-1, :].copy()
+        # if flip_vertical:
+        #     rotation = np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]) @ rotation
+        #     if "points" in data:
+        #         data["points"].flip("vertical")
+        #     if "gt_bboxes_3d" in data:
+        #         data["gt_bboxes_3d"].flip("vertical")
+        #     if "gt_masks_bev" in data:
+        #         data["gt_masks_bev"] = data["gt_masks_bev"][:, ::-1, :].copy()
 
         data["lidar_aug_matrix"][:3, :] = rotation @ data["lidar_aug_matrix"][:3, :]
         return data
@@ -1018,12 +1018,19 @@ class ObjectRangeFilter:
                 keys are updated in the result dict.
         """
         # Check points instance type and initialise bev_range
+
+        print("ObjectRangeFilter")
+        print("gt_bboxes_3d", len(data["gt_bboxes_3d"]))
+        print("pc_range", data["pc_range"])
+
+        pc_range = np.array(data["pc_range"].squeeze().tolist(), dtype=np.float32)
+
         if isinstance(
                 data["gt_bboxes_3d"], (LiDARInstance3DBoxes, DepthInstance3DBoxes)
         ):
-            bev_range = self.pcd_range[[0, 1, 3, 4]]
+            bev_range = pc_range[[0, 1, 3, 4]]
         elif isinstance(data["gt_bboxes_3d"], CameraInstance3DBoxes):
-            bev_range = self.pcd_range[[0, 2, 3, 5]]
+            bev_range = pc_range[[0, 2, 3, 5]]
 
         gt_bboxes_3d = data["gt_bboxes_3d"]
         gt_labels_3d = data["gt_labels_3d"]
@@ -1068,9 +1075,48 @@ class PointsRangeFilter:
                 and 'pts_semantic_mask' keys are updated in the result dict.
         """
         points = data["points"]
-        points_mask = points.in_range_3d(self.pcd_range)
+        pc_range = data["pc_range"].squeeze().tolist()
+
+        print("PointsRangeFilter")
+        print("points", len(points))
+        print("pc_range", pc_range)
+
+        # points_mask = points.in_range_3d(pc_range)
+
+        tmp_point = points.tensor
+        print(tmp_point.shape)
+
+        print(pc_range[0])
+        print(pc_range[1])
+        print(pc_range[2])
+        print(pc_range[3])
+        print(pc_range[4])
+        print(pc_range[5])
+
+        print("Bound max: ", tmp_point.max(dim=0).values)
+        print("Bound min: ", tmp_point.min(dim=0).values)
+
+        points_mask = (
+            (tmp_point[:, 0] > pc_range[0])
+            & (tmp_point[:, 1] > pc_range[1])
+            & (tmp_point[:, 2] > pc_range[2])
+            & (tmp_point[:, 0] < pc_range[3])
+            & (tmp_point[:, 1] < pc_range[4])
+            & (tmp_point[:, 2] < pc_range[5])
+        )
+
+        # Count number of points in range by summing the mask
+        print(sum(points_mask))
+
         clean_points = points[points_mask]
+
+        print("points", len(clean_points))
+
         data["points"] = clean_points
+
+        print("points", len(data["points"]))
+        print("Returning data")
+
         return data
 
 

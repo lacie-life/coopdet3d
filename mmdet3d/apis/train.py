@@ -26,6 +26,8 @@ def train_model(
 ):
     logger = get_root_logger()
 
+    # cfg.data.train.pipeline = replace_ImageToTensor(cfg.data.train.pipeline)
+
     # prepare data loaders
     dataset = dataset if isinstance(dataset, (list, tuple)) else [dataset]
 
@@ -45,9 +47,14 @@ def train_model(
     find_unused_parameters = cfg.get("find_unused_parameters", False)
     # Sets the `find_unused_parameters` parameter in
     # torch.nn.parallel.DistributedDataParallel
+    
+    # model = model.cuda()
+
+    # model = build_dp(model, device='cuda', device_ids=[0])
+    
     model = MMDistributedDataParallel(
         model.cuda(),
-        device_ids=[torch.cuda.current_device()],
+        device_ids=[0],
         broadcast_buffers=False,
         find_unused_parameters=find_unused_parameters,
     )
