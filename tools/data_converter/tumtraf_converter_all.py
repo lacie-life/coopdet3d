@@ -101,7 +101,6 @@ class TUMTraf2NuScenesAll(object):
 
             pcd_list_south1 = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south', '*')))
             pcd_list_south2 = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south', '*')))
-
             
             pcd_list_north = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_north', '*')))
             
