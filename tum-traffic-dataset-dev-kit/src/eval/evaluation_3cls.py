@@ -896,7 +896,7 @@ def get_attribute_by_name(attribute_list, attribute_name):
 
 
 def load_lidar_boxes_into_s110_gt(input_folder_path, object_min_points=0, ouster_lidar_only=False, prediction_type=None):
-    def append_object(num_points, l, w, h, rotation, position_3d, category, prediction_type):
+    def append_object(num_points, l, w, h, rotation, position_3d, category, prediction_type, camera_id=None):
         # Ground truth is labeled with camera data, so there are objects
         # contained in the ground truth without a single corresponding
         # point in the LiDAR point cloud.
@@ -941,6 +941,9 @@ def load_lidar_boxes_into_s110_gt(input_folder_path, object_min_points=0, ouster
                     l = float(label["object_data"]["cuboid"]["val"][7])
                     w = float(label["object_data"]["cuboid"]["val"][8])
                     h = float(label["object_data"]["cuboid"]["val"][9])
+
+                    # Check object in detection area
+
                     quat_x = float(label["object_data"]["cuboid"]["val"][3])
                     quat_y = float(label["object_data"]["cuboid"]["val"][4])
                     quat_z = float(label["object_data"]["cuboid"]["val"][5])
@@ -1030,7 +1033,7 @@ def load_lidar_boxes_into_s110_gt(input_folder_path, object_min_points=0, ouster
     return labels_list
 
 def load_lidar_boxes_into_s110_pred(input_folder_path, object_min_points=0, ouster_lidar_only=False, prediction_type=None):
-    def append_object(num_points, l, w, h, rotation, position_3d, category, prediction_type):
+    def append_object(num_points, l, w, h, rotation, position_3d, category, prediction_type, camera_id=None):
         # Ground truth is labeled with camera data, so there are objects
         # contained in the ground truth without a single corresponding
         # point in the LiDAR point cloud.
@@ -1340,6 +1343,275 @@ def prepare_predictions_kitti(predictions_path):
     return predictions_list
 
 
+def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
+
+    def append_pred_object(num_points, l, w, h, rotation, position_3d, category, prediction_type):
+        # Ground truth is labeled with camera data, so there are objects
+        # contained in the ground truth without a single corresponding
+        # point in the LiDAR point cloud.
+        # You can specify how many minimum points there should be before a label
+        # is included.
+        name_ped.append(category.upper())
+        boxes_3d_ped.append(np.hstack((position_3d, l, w, h, rotation)))
+        num_points_in_gt_pred.append(num_points)
+
+    def append_gt_object(num_points, l, w, h, rotation, position_3d, category, prediction_type):
+        # Ground truth is labeled with camera data, so there are objects
+        # contained in the ground truth without a single corresponding
+        # point in the LiDAR point cloud.
+        # You can specify how many minimum points there should be before a label
+        # is included.
+        name_gt.append(category.upper())
+        boxes_3d_gt.append(np.hstack((position_3d, l, w, h, rotation)))
+        num_points_in_gt_gt.append(num_points)
+
+    lidar_south_range_south_1 = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+    lidar_south_range_south_2 = [0.0, 0.0, -10.0, 70.0, 70.0, -2.0]
+    lidar_north_range = [0.0, -72.0, -10.0, 70.0, -2.0, -2.0]
+
+    class_map = {
+            'CAR': 'CAR',
+            'PEDESTRIAN': 'PEDESTRIAN',
+            'TRUCK': 'CAR',
+            'BUS': 'CAR',
+            'TRAILER': 'CAR',
+            'BICYCLE': 'WHEELER',
+            'MOTORCYCLE': 'WHEELER',
+            'VAN': 'CAR',
+            'EMERGENCY_VEHICLE': 'CAR',
+            'OTHER': 'CAR'
+        }
+    
+    labels_file_list = listdir_fullpath(pred_folder)
+    labels_file_list.sort()
+
+    gt_list = []
+    predict_list = []
+
+    for label_file in labels_file_list:
+        # Extract lidar name and camera name from the file name
+        lidar_name = label_file.split("/")[-1].split(".")[0][:-2]
+        camera_name = label_file.split("/")[-1].split(".")[-2:]
+
+        print("Processing file: ", label_file)
+        print("Lidar name: ", lidar_name)
+        print("Camera name: ", camera_name)
+
+        if "south" in lidar_name and camera_name == "s1":
+            gt_path = os.path.join(gt_folder, "s110_lidar_ouster_south", lidar_name + ".json")
+        elif "south" in lidar_name and camera_name == "s2":
+            gt_path = os.path.join(gt_folder, "s110_lidar_ouster_south", lidar_name + ".json")
+        elif "south" in lidar_name and camera_name == "s1":
+            gt_path = os.path.join(gt_folder, "s110_lidar_ouster_north", lidar_name + ".json")
+
+        pred_path = label_file
+
+        print("GT path: ", gt_path)
+        print("Pred path: ", pred_path)
+
+        # Load pred data
+        name_ped = []
+        boxes_3d_ped = []
+        num_points_in_gt_pred = []
+        json_data_pred = json.load(open(pred_path))
+        scores_pred = []
+        if "openlabel" in json_data_pred:
+            for frame_id, frame_obj in json_data_pred["openlabel"]["frames"].items():
+                if len(frame_obj["objects"].items()) == 0:
+                    print("no detections in frame: {}".format(pred_path))
+                    continue
+                for object_id, label in frame_obj["objects"].items():
+                    # Dataset in ASAM OpenLABEL format
+                    l = float(label["object_data"]["cuboid"]["val"][7])
+                    w = float(label["object_data"]["cuboid"]["val"][8])
+                    h = float(label["object_data"]["cuboid"]["val"][9])
+
+                    quat_x = float(label["object_data"]["cuboid"]["val"][3])
+                    quat_y = float(label["object_data"]["cuboid"]["val"][4])
+                    quat_z = float(label["object_data"]["cuboid"]["val"][5])
+                    quat_w = float(label["object_data"]["cuboid"]["val"][6])
+                    if np.linalg.norm([quat_x, quat_y, quat_z, quat_w]) == 0.0:
+                        continue
+                    rotation = R.from_quat([quat_x, quat_y, quat_z, quat_w]).apply([l / 2.0, 0, 0])
+                    position_3d = [
+                        float(label["object_data"]["cuboid"]["val"][0]),
+                        float(label["object_data"]["cuboid"]["val"][1]),
+                        float(label["object_data"]["cuboid"]["val"][2]),  # - h / 2  # To avoid floating bounding boxes
+                    ]
+
+                    # Check object in detection area
+                    if lidar_name == "lidar_south" and camera_name == "s1":
+                        if not (
+                            lidar_south_range_south_1[0] <= position_3d[0] <= lidar_south_range_south_1[3]
+                            and lidar_south_range_south_1[1] <= position_3d[1] <= lidar_south_range_south_1[4]
+                            and lidar_south_range_south_1[2] <= position_3d[2] <= lidar_south_range_south_1[5]
+                        ):
+                            continue
+                    elif lidar_name == "lidar_south" and camera_name == "s2":
+                        if not (
+                            lidar_south_range_south_2[0] <= position_3d[0] <= lidar_south_range_south_2[3]
+                            and lidar_south_range_south_2[1] <= position_3d[1] <= lidar_south_range_south_2[4]
+                            and lidar_south_range_south_2[2] <= position_3d[2] <= lidar_south_range_south_2[5]
+                        ):
+                            continue
+                    elif lidar_name == "lidar_north" and camera_name == "s1":
+                        if not (
+                            lidar_north_range[0] <= position_3d[0] <= lidar_north_range[3]
+                            and lidar_north_range[1] <= position_3d[1] <= lidar_north_range[4]
+                            and lidar_north_range[2] <= position_3d[2] <= lidar_north_range[5]
+                        ):
+                            continue
+
+                    image_pos = perspective.project_from_lidar_south_to_image(
+                        np.array(
+                            [
+                                [position_3d[0], position_3d[0] + rotation[0]],
+                                [position_3d[1], position_3d[1] + rotation[1]],
+                                [position_3d[2] - h / 2, position_3d[2] - h / 2 + rotation[2]],
+                            ]
+                        )
+                    )
+
+                    # 3d position in s110_base with z=0
+                    position_3d_in_s110_base = perspective.project_to_ground(image_pos)
+                    orientation_vec = position_3d_in_s110_base[:, 0] - position_3d_in_s110_base[:, 1]
+                    # yaw rotation in s110_base frame
+                    rotation_yaw = np.arctan2(orientation_vec[1], orientation_vec[0])
+
+                    attribute = get_attribute_by_name(label["object_data"]["cuboid"]["attributes"]["num"], "num_points")
+
+                    num_points = 0
+                    if attribute is not None:
+                        num_points = int(float(attribute["val"]))
+                    append_pred_object(
+                        num_points,
+                        l,
+                        w,
+                        h,
+                        rotation_yaw,
+                        position_3d_in_s110_base[:, 0],
+                        class_map[label["object_data"]["type"]],
+                        prediction_type=prediction_type,
+                    )
+
+                    attribute = get_attribute_by_name(label["object_data"]["cuboid"]["attributes"]["num"], "score")
+                    if attribute is not None:
+                        score = attribute["val"]
+                        scores_pred.append(score)
+
+        label_dict = {
+            "name": np.array(name_ped),
+            "boxes_3d": np.array(boxes_3d_ped),
+            "num_points_in_gt": np.array(num_points_in_gt_pred),
+            "score": np.array(scores_pred),
+        }
+        predict_list.append(label_dict)
+
+
+        # Load GT data
+        name_gt = []
+        boxes_3d_gt = []
+        num_points_in_gt_gt = []
+        json_data_gt = json.load(open(gt_path))
+        scores_gt = []
+        if "openlabel" in json_data_gt:
+            for frame_id, frame_obj in json_data_gt["openlabel"]["frames"].items():
+                if len(frame_obj["objects"].items()) == 0:
+                    print("no detections in frame: {}".format(gt_path))
+                    continue
+                for object_id, label in frame_obj["objects"].items():
+                    # Dataset in ASAM OpenLABEL format
+                    l = float(label["object_data"]["cuboid"]["val"][7])
+                    w = float(label["object_data"]["cuboid"]["val"][8])
+                    h = float(label["object_data"]["cuboid"]["val"][9])
+
+                    quat_x = float(label["object_data"]["cuboid"]["val"][3])
+                    quat_y = float(label["object_data"]["cuboid"]["val"][4])
+                    quat_z = float(label["object_data"]["cuboid"]["val"][5])
+                    quat_w = float(label["object_data"]["cuboid"]["val"][6])
+                    if np.linalg.norm([quat_x, quat_y, quat_z, quat_w]) == 0.0:
+                        continue
+                    rotation = R.from_quat([quat_x, quat_y, quat_z, quat_w]).apply([l / 2.0, 0, 0])
+                    position_3d = [
+                        float(label["object_data"]["cuboid"]["val"][0]),
+                        float(label["object_data"]["cuboid"]["val"][1]),
+                        float(label["object_data"]["cuboid"]["val"][2]),  # - h / 2  # To avoid floating bounding boxes
+                    ]
+
+                    # Check object in detection area
+                    if lidar_name == "lidar_south" and camera_name == "s1":
+                        if not (
+                            lidar_south_range_south_1[0] <= position_3d[0] <= lidar_south_range_south_1[3]
+                            and lidar_south_range_south_1[1] <= position_3d[1] <= lidar_south_range_south_1[4]
+                            and lidar_south_range_south_1[2] <= position_3d[2] <= lidar_south_range_south_1[5]
+                        ):
+                            continue
+                    elif lidar_name == "lidar_south" and camera_name == "s2":
+                        if not (
+                            lidar_south_range_south_2[0] <= position_3d[0] <= lidar_south_range_south_2[3]
+                            and lidar_south_range_south_2[1] <= position_3d[1] <= lidar_south_range_south_2[4]
+                            and lidar_south_range_south_2[2] <= position_3d[2] <= lidar_south_range_south_2[5]
+                        ):
+                            continue
+                    elif lidar_name == "lidar_north" and camera_name == "s1":
+                        if not (
+                            lidar_north_range[0] <= position_3d[0] <= lidar_north_range[3]
+                            and lidar_north_range[1] <= position_3d[1] <= lidar_north_range[4]
+                            and lidar_north_range[2] <= position_3d[2] <= lidar_north_range[5]
+                        ):
+                            continue
+
+                    image_pos = perspective.project_from_lidar_south_to_image(
+                        np.array(
+                            [
+                                [position_3d[0], position_3d[0] + rotation[0]],
+                                [position_3d[1], position_3d[1] + rotation[1]],
+                                [position_3d[2] - h / 2, position_3d[2] - h / 2 + rotation[2]],
+                            ]
+                        )
+                    )
+
+                    # 3d position in s110_base with z=0
+                    position_3d_in_s110_base = perspective.project_to_ground(image_pos)
+                    orientation_vec = position_3d_in_s110_base[:, 0] - position_3d_in_s110_base[:, 1]
+                    # yaw rotation in s110_base frame
+                    rotation_yaw = np.arctan2(orientation_vec[1], orientation_vec[0])
+
+                    attribute = get_attribute_by_name(label["object_data"]["cuboid"]["attributes"]["num"], "num_points")
+
+                    num_points = 0
+                    if attribute is not None:
+                        num_points = int(float(attribute["val"]))
+                    append_gt_object(
+                        num_points,
+                        l,
+                        w,
+                        h,
+                        rotation_yaw,
+                        position_3d_in_s110_base[:, 0],
+                        class_map[label["object_data"]["type"]],
+                        prediction_type=prediction_type,
+                    )
+
+                    attribute = get_attribute_by_name(label["object_data"]["cuboid"]["attributes"]["num"], "score")
+                    if attribute is not None:
+                        score = attribute["val"]
+                        scores_pred.append(score)
+
+        label_dict = {
+            "name": np.array(name_gt),
+            "boxes_3d": np.array(boxes_3d_gt),
+            "num_points_in_gt": np.array(num_points_in_gt_gt),
+            "score": np.array(scores_gt),
+        }
+        gt_list.append(label_dict)
+
+    if len(gt_list) != len(predict_list):
+        raise ValueError("Number of ground truth files and prediction files do not match.")
+
+    return gt_list, predict_list
+    
+
 def visualize_bounding_boxes(
     label_path, prediction_path, object_min_points=0, ouster_lidar_only=False, prediction_type=None
 ):
@@ -1425,50 +1697,10 @@ if __name__ == "__main__":
     if hasattr(perspective, "initialize_matrices"):
         perspective.initialize_matrices()
 
-    if os.path.isfile(folder_path_ground_truth) and os.path.isfile(folder_path_predictions):
-        visualize_bounding_boxes(
-            folder_path_ground_truth,
-            folder_path_predictions,
-            object_min_points=object_min_points,
-            ouster_lidar_only=use_ouster_lidar_only,
+    if prediction_format == "openlabel":
+        gt_data, pred_data = load_gt_and_pred_data(
+            folder_path_ground_truth, folder_path_predictions, object_min_points
         )
-    else:
-        gt_data = load_lidar_boxes_into_s110_gt(
-            folder_path_ground_truth,
-            object_min_points=object_min_points,
-            ouster_lidar_only=use_ouster_lidar_only,
-            prediction_type=prediction_type,
-        )
-
-        if prediction_format == "openlabel":
-            # load lidar labels into s110 for all prediction types (mono3d, lidar3d, multi3d)
-            # parse openlabel predictions
-            if prediction_type in ["lidar3d_supervised", "lidar3d_unsupervised"]:
-                pred_data = load_lidar_boxes_into_s110_pred(
-                    folder_path_predictions,
-                    object_min_points=object_min_points,
-                    ouster_lidar_only=use_ouster_lidar_only,
-                    prediction_type=prediction_type,
-                )
-            else:
-                pred_data = parse_input_files(
-                    folder_path_predictions,
-                    object_min_points=object_min_points,
-                    ouster_lidar_only=use_ouster_lidar_only,
-                    prediction_type=prediction_type,
-                )
-
-        elif prediction_format == "kitti":
-            # parse KITTI predictions
-            pred_data = prepare_predictions_kitti(folder_path_predictions)
-        else:
-            raise ValueError("Unknown prediction format: {}".format(prediction_format))
-
-        if prediction_type == "lidar3d_unsupervised":
-            # set lidar detection scores to 1 (because of unsupervised learning)
-            for item in pred_data:
-                n_obj = item["name"].size
-                item["score"] = np.full(n_obj, 1)
 
         classes = [
             "CAR",
