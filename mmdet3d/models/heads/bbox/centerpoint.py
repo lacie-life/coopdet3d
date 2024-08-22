@@ -336,7 +336,7 @@ class CenterHead(BaseModule):
             )
             self.task_heads.append(builder.build_head(separate_head))
 
-    def forward_single(self, x):
+    def forward_single(self, x, pc_range):
         """Forward function for CenterPoint.
         Args:
             x (torch.Tensor): Input feature map with the shape of
@@ -353,7 +353,7 @@ class CenterHead(BaseModule):
 
         return ret_dicts
 
-    def forward(self, feats, metas):
+    def forward(self, feats, pc_range, metas):
         """Forward pass.
         Args:
             feats (list[torch.Tensor]): Multi-level features, e.g.,
@@ -363,7 +363,7 @@ class CenterHead(BaseModule):
         """
         if isinstance(feats, torch.Tensor):
             feats = [feats]
-        return multi_apply(self.forward_single, feats)
+        return multi_apply(self.forward_single, feats, pc_range)
 
     def _gather_feat(self, feat, ind, mask=None):
         """Gather feature map.
@@ -387,7 +387,7 @@ class CenterHead(BaseModule):
             feat = feat.view(-1, dim)
         return feat
 
-    def get_targets(self, gt_bboxes_3d, gt_labels_3d):
+    def get_targets(self, gt_bboxes_3d, gt_labels_3d, pc_range):
         """Generate targets.
         How each output is transformed:
             Each nested list is transposed so that all same-index elements in
@@ -413,7 +413,7 @@ class CenterHead(BaseModule):
                         boxes are valid.
         """
         heatmaps, anno_boxes, inds, masks = multi_apply(
-            self.get_targets_single, gt_bboxes_3d, gt_labels_3d
+            self.get_targets_single, gt_bboxes_3d, gt_labels_3d, pc_range
         )
         # Transpose heatmaps
         heatmaps = list(map(list, zip(*heatmaps)))
@@ -429,7 +429,7 @@ class CenterHead(BaseModule):
         masks = [torch.stack(masks_) for masks_ in masks]
         return heatmaps, anno_boxes, inds, masks
 
-    def get_targets_single(self, gt_bboxes_3d, gt_labels_3d):
+    def get_targets_single(self, gt_bboxes_3d, gt_labels_3d, pc_range):
         """Generate training targets for a single sample.
         Args:
             gt_bboxes_3d (:obj:`LiDARInstance3DBoxes`): Ground truth gt boxes.
@@ -450,7 +450,11 @@ class CenterHead(BaseModule):
         ).to(device)
         max_objs = self.train_cfg["max_objs"] * self.train_cfg["dense_reg"]
         grid_size = torch.tensor(self.train_cfg["grid_size"])
-        pc_range = torch.tensor(self.train_cfg["point_cloud_range"])
+        # pc_range = torch.tensor(self.train_cfg["point_cloud_range"])
+
+        pc_range = torch.tensor(pc_range.squeeze().tolist()).to(device)
+        print("pc_range", pc_range)
+
         voxel_size = torch.tensor(self.train_cfg["voxel_size"])
 
         feature_map_size = torch.div(
@@ -582,7 +586,7 @@ class CenterHead(BaseModule):
         return heatmaps, anno_boxes, inds, masks
 
     @force_fp32(apply_to=("preds_dicts"))
-    def loss(self, gt_bboxes_3d, gt_labels_3d, preds_dicts, **kwargs):
+    def loss(self, gt_bboxes_3d, gt_labels_3d, preds_dicts, pc_range, **kwargs):
         """Loss function for CenterHead.
         Args:
             gt_bboxes_3d (list[:obj:`LiDARInstance3DBoxes`]): Ground
@@ -592,7 +596,7 @@ class CenterHead(BaseModule):
         Returns:
             dict[str:torch.Tensor]: Loss of heatmap and bbox of each task.
         """
-        heatmaps, anno_boxes, inds, masks = self.get_targets(gt_bboxes_3d, gt_labels_3d)
+        heatmaps, anno_boxes, inds, masks = self.get_targets(gt_bboxes_3d, gt_labels_3d, pc_range)
         loss_dict = dict()
         for task_id, preds_dict in enumerate(preds_dicts):
             # heatmap focal loss
@@ -634,7 +638,7 @@ class CenterHead(BaseModule):
         return loss_dict
 
     @force_fp32(apply_to=("preds_dicts"))
-    def get_bboxes(self, preds_dicts, metas, img=None, rescale=False):
+    def get_bboxes(self, preds_dicts, pc_range, metas, img=None, rescale=False):
         """Generate bboxes from bbox head predictions.
         Args:
             preds_dicts (tuple[list[dict]]): Prediction results.
@@ -693,6 +697,7 @@ class CenterHead(BaseModule):
                 batch_hei,
                 batch_dim,
                 batch_vel,
+                pc_range,
                 reg=batch_reg,
                 task_id=task_id,
             )

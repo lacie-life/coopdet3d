@@ -168,30 +168,42 @@ def visualize_camera_combo(
         coords[:, 1] /= coords[:, 2]
 
         coords = coords[..., :2].reshape(-1, 8, 2)
+        
         for index in range(coords.shape[0]):
             name = classes[gtlabels[index]]
-            for start, end in [
-                (0, 1),
-                (0, 3),
-                (0, 4),
-                (1, 2),
-                (1, 5),
-                (3, 2),
-                (3, 7),
-                (4, 5),
-                (4, 7),
-                (2, 6),
-                (5, 6),
-                (6, 7),
-            ]:
-                cv2.line(
-                    canvas,
-                    coords[index, start].astype(int),
-                    coords[index, end].astype(int),
-                    (255, 255, 255),
-                    thickness,
-                    cv2.LINE_AA,
-                )
+
+            print("coords", coords[index])
+
+            count = 0
+            for coord in coords[index]:
+                if not( 0 <= coord[0] <= 1920 and 0 <= coord[1] <= 1200):
+                    count += 1
+            
+            print("count", count)
+            
+            if count < 5 :
+                for start, end in [
+                    (0, 1),
+                    (0, 3),
+                    (0, 4),
+                    (1, 2),
+                    (1, 5),
+                    (3, 2),
+                    (3, 7),
+                    (4, 5),
+                    (4, 7),
+                    (2, 6),
+                    (5, 6),
+                    (6, 7),
+                ]:
+                    cv2.line(
+                        canvas,
+                        coords[index, start].astype(int),
+                        coords[index, end].astype(int),
+                        (255, 255, 255),
+                        thickness,
+                        cv2.LINE_AA,
+                    )
         canvas = canvas.astype(np.uint8)
 
     if bboxes is not None and len(bboxes) > 0:
@@ -209,13 +221,19 @@ def visualize_camera_combo(
         coords = coords @ transform.T
         coords = coords.reshape(-1, 8, 4)
 
+        print("coords image 1", coords)
+
         indices = np.all(coords[..., 2] > 0, axis=1)
         coords = coords[indices]
         labels = labels[indices]
 
+        print("coords image 2", coords)
+
         indices = np.argsort(-np.min(coords[..., 2], axis=1))
         coords = coords[indices]
         labels = labels[indices]
+
+        print("coords image 3", coords)
 
         coords = coords.reshape(-1, 4)
         coords[:, 2] = np.clip(coords[:, 2], a_min=1e-5, a_max=1e5)
@@ -223,30 +241,40 @@ def visualize_camera_combo(
         coords[:, 1] /= coords[:, 2]
 
         coords = coords[..., :2].reshape(-1, 8, 2)
+    
         for index in range(coords.shape[0]):
             name = classes[labels[index]]
-            for start, end in [
-                (0, 1),
-                (0, 3),
-                (0, 4),
-                (1, 2),
-                (1, 5),
-                (3, 2),
-                (3, 7),
-                (4, 5),
-                (4, 7),
-                (2, 6),
-                (5, 6),
-                (6, 7),
-            ]:
-                cv2.line(
-                    canvas,
-                    coords[index, start].astype(int),
-                    coords[index, end].astype(int),
-                    color or OBJECT_PALETTE[name],
-                    thickness,
-                    cv2.LINE_AA,
-                )
+            print("coords", coords[index])
+
+            count = 0
+            for coord in coords[index]:
+                if not( 0 <= coord[0] <= 1920 and 0 <= coord[1] <= 1200):
+                    count += 1
+            
+            print("count", count)
+            if count < 5:
+                for start, end in [
+                    (0, 1),
+                    (0, 3),
+                    (0, 4),
+                    (1, 2),
+                    (1, 5),
+                    (3, 2),
+                    (3, 7),
+                    (4, 5),
+                    (4, 7),
+                    (2, 6),
+                    (5, 6),
+                    (6, 7),
+                ]:
+                    cv2.line(
+                        canvas,
+                        coords[index, start].astype(int),
+                        coords[index, end].astype(int),
+                        color or OBJECT_PALETTE[name],
+                        thickness,
+                        cv2.LINE_AA,
+                    )
         canvas = canvas.astype(np.uint8)
     canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
@@ -316,6 +344,7 @@ def visualize_lidar_combo(
     bboxes: Optional[LiDARInstance3DBoxes] = None,
     gtlabels: Optional[np.ndarray] = None,
     labels: Optional[np.ndarray] = None,
+    transform: Optional[np.ndarray] = None,
     classes: Optional[List[str]] = None,
     xlim: Tuple[float, float] = (-50, 50),
     ylim: Tuple[float, float] = (-50, 50),
@@ -340,27 +369,145 @@ def visualize_lidar_combo(
         )
     
     if gtbboxes is not None and len(gtbboxes) > 0:
+
+        # corners = gtbboxes.corners
+        # num_bboxes = corners.shape[0]
+
+        # coords_ = np.concatenate(
+        #     [corners.reshape(-1, 3), np.ones((num_bboxes * 8, 1))], axis=-1
+        # )
+
+        # if transform.size < 16:
+        #     transform = np.append(transform, [[0.0, 0.0, 0.0, 1.0]], axis=0)
+        
+        # transform = copy.deepcopy(transform).reshape(4, 4)
+        # coords_ = coords_ @ transform.T
+        # coords_ = coords_.reshape(-1, 8, 4)
+
+        # indices = np.all(coords_[..., 2] > 0, axis=1)
+        
+        # tmp_oords = coords_[indices]
+        # labels = labels[indices]
+
+        # coords = tmp_oords[:, [0, 3, 7, 4, 0], :2]
+
         coords = gtbboxes.corners[:, [0, 3, 7, 4, 0], :2]
         for index in range(coords.shape[0]):
-            name = classes[gtlabels[index]]
-            plt.plot(
-                coords[index, :, 0],
-                coords[index, :, 1],
-                linewidth=thickness,
-                color=np.array((255, 255, 255)) / 255,
-            )
+
+            if transform.size < 16:
+                transform = np.append(transform, [[0.0, 0.0, 0.0, 1.0]], axis=0)
+        
+            transform = copy.deepcopy(transform).reshape(4, 4)
+            print("transform", transform)
+            print("coords", gtbboxes.corners[index].reshape(-1, 3))
+            coords_ = np.concatenate([gtbboxes.corners[index].reshape(-1, 3), np.ones((1 * 8, 1))], axis=-1) @ transform.T
+            coords_ = coords_.reshape(-1, 8, 4)
+            # print("coords_", coords_)
+
+            # print("coords image 1", coords_)
+
+            indices = np.all(coords_[..., 2] > 0, axis=1)
+            coords_ = coords_[indices]
+            # labels = labels[indices]
+
+            # print("coords image 2", coords_)
+
+            indices = np.argsort(-np.min(coords_[..., 2], axis=1))
+            coords_ = coords_[indices]
+            # labels = labels[indices]
+
+            # print("coords image 3", coords_)
+
+            coords_ = coords_.reshape(-1, 4)
+            coords_[:, 2] = np.clip(coords_[:, 2], a_min=1e-5, a_max=1e5)
+            coords_[:, 0] /= coords_[:, 2]
+            coords_[:, 1] /= coords_[:, 2]
+
+            coords_ = coords_[..., :2].reshape(-1, 8, 2)
+
+            count = 0
+            for coord in coords_:
+                if not( 0 <= coord[0][0] <= 1920 and 0 <= coord[0][1] <= 1200):
+                    count += 1
+            
+            print("count", count)
+
+            if count == 0:
+                name = classes[gtlabels[index]]
+                plt.plot(
+                    coords[index, :, 0],
+                    coords[index, :, 1],
+                    linewidth=thickness,
+                    color=np.array((255, 255, 255)) / 255,
+                )
+
+            # name = classes[gtlabels[index]]
+            # plt.plot(
+            #     coords[index, :, 0],
+            #     coords[index, :, 1],
+            #     linewidth=thickness,
+            #     color=np.array((255, 255, 255)) / 255,
+            # )
 
 
     if bboxes is not None and len(bboxes) > 0:
         coords = bboxes.corners[:, [0, 3, 7, 4, 0], :2]
         for index in range(coords.shape[0]):
-            name = classes[labels[index]]
-            plt.plot(
-                coords[index, :, 0],
-                coords[index, :, 1],
-                linewidth=thickness,
-                color=np.array(color or OBJECT_PALETTE[name]) / 255,
-            )
+
+            if transform.size < 16:
+                transform = np.append(transform, [[0.0, 0.0, 0.0, 1.0]], axis=0)
+        
+            transform = copy.deepcopy(transform).reshape(4, 4)
+            print("transform", transform)
+            print("coords", bboxes.corners[index].reshape(-1, 3))
+            coords_ = np.concatenate([bboxes.corners[index].reshape(-1, 3), np.ones((1 * 8, 1))], axis=-1) @ transform.T
+            coords_ = coords_.reshape(-1, 8, 4)
+            # print("coords_", coords_)
+
+            # print("coords image 1", coords_)
+
+            indices = np.all(coords_[..., 2] > 0, axis=1)
+            coords_ = coords_[indices]
+            # labels = labels[indices]
+
+            # print("coords image 2", coords_)
+
+            indices = np.argsort(-np.min(coords_[..., 2], axis=1))
+            coords_ = coords_[indices]
+            # labels = labels[indices]
+
+            # print("coords image 3", coords_)
+
+            coords_ = coords_.reshape(-1, 4)
+            coords_[:, 2] = np.clip(coords_[:, 2], a_min=1e-5, a_max=1e5)
+            coords_[:, 0] /= coords_[:, 2]
+            coords_[:, 1] /= coords_[:, 2]
+
+            coords_ = coords_[..., :2].reshape(-1, 8, 2)
+
+            count = 0
+            for coord in coords_:
+                if not( 0 <= coord[0][0] <= 1920 and 0 <= coord[0][1] <= 1200):
+                    count += 1
+            
+            print("count", count)
+
+            if count == 0:
+                name = classes[labels[index]]
+                plt.plot(
+                    coords[index, :, 0],
+                    coords[index, :, 1],
+                    linewidth=thickness,
+                    color=np.array(color or OBJECT_PALETTE[name]) / 255,
+                )
+
+            # name = classes[labels[index]]
+            # plt.plot(
+            #     coords[index, :, 0],
+            #     coords[index, :, 1],
+            #     linewidth=thickness,
+            #     color=np.array(color or OBJECT_PALETTE[name]) / 255,
+            # )
     
     mmcv.mkdir_or_exist(os.path.dirname(fpath))
     fig.savefig(
@@ -474,6 +621,7 @@ def visualize_lidar_two_combo(
         )
 
     if bboxes is not None and len(bboxes) > 0:
+
         coords = bboxes.corners[:, [0, 3, 7, 4, 0], :2]
         for index in range(coords.shape[0]):
             name = classes[labels[index]]
@@ -485,6 +633,18 @@ def visualize_lidar_two_combo(
             )
 
     if gtbboxes is not None and len(gtbboxes) > 0:
+
+        if transform.size < 16:
+            transform = np.append(transform, [[0.0, 0.0, 0.0, 1.0]], axis=0)
+        
+        transform = copy.deepcopy(transform).reshape(4, 4)
+        coords_ = coords @ transform.T
+        coords_ = coords.reshape(-1, 8, 4)
+
+        indices = np.all(coords_[..., 2] > 0, axis=1)
+        coords = coords[indices]
+        labels = labels[indices]
+
         coords = gtbboxes.corners[:, [0, 3, 7, 4, 0], :2]
         for index in range(coords.shape[0]):
             name = classes[gtlabels[index]]

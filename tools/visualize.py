@@ -200,6 +200,7 @@ def main() -> None:
                 bboxes=bboxes,
                 gtlabels=gtlabels,
                 labels=labels,
+                transform=metas["lidar2image"][0],
                 xlim=[pc_range[d] for d in [0, 3]],
                 ylim=[pc_range[d] for d in [1, 4]],
                 classes=cfg.object_classes,

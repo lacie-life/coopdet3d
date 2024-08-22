@@ -178,7 +178,7 @@ def get_evaluation_results(
                             )
                         else:
                             # continue
-                            print("iou is empty")
+                            # print("iou is empty")
                             accum_scores, accum_iou, accum_pos, accum_rot = (
                                 np.array([]),
                                 np.array([]),
@@ -1470,18 +1470,13 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                         # Eight points of the object in the LiDAR frame
                         bounding_box_3d = np.array(
                             [
-                                [-l / 2, -w / 2, -h / 2],
-                                [+l / 2, -w / 2, -h / 2],
-                                [+l / 2, +w / 2, -h / 2],
-                                [-l / 2, +w / 2, -h / 2],
-                                [-l / 2, -w / 2, +h / 2],
-                                [+l / 2, -w / 2, +h / 2],
-                                [+l / 2, +w / 2, +h / 2],
-                                [-l / 2, +w / 2, +h / 2],
+                                [-l / 2, -l / 2,  l / 2,  l / 2, -l / 2, -l / 2,  l / 2, l / 2],
+                                [ w / 2, -w / 2, -w / 2,  w / 2,  w / 2, -w / 2, -w / 2, w / 2],
+                                [-h / 2, -h / 2, -h / 2, -h / 2,  h / 2,  h / 2,  h / 2, h / 2],
                             ]
                         )
 
-                        bounding_box_3d = bounding_box_3d.transpose()
+                        # bounding_box_3d = bounding_box_3d.transpose()
 
                         rotation_matrix = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_matrix()
 
@@ -1522,18 +1517,13 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                         # Eight points of the object in the LiDAR frame
                         bounding_box_3d = np.array(
                             [
-                                [-l / 2, -w / 2, -h / 2],
-                                [+l / 2, -w / 2, -h / 2],
-                                [+l / 2, +w / 2, -h / 2],
-                                [-l / 2, +w / 2, -h / 2],
-                                [-l / 2, -w / 2, +h / 2],
-                                [+l / 2, -w / 2, +h / 2],
-                                [+l / 2, +w / 2, +h / 2],
-                                [-l / 2, +w / 2, +h / 2],
+                                [-l / 2, -l / 2,  l / 2,  l / 2, -l / 2, -l / 2,  l / 2, l / 2],
+                                [ w / 2, -w / 2, -w / 2,  w / 2,  w / 2, -w / 2, -w / 2, w / 2],
+                                [-h / 2, -h / 2, -h / 2, -h / 2,  h / 2,  h / 2,  h / 2, h / 2],
                             ]
                         )
 
-                        bounding_box_3d = bounding_box_3d.transpose()
+                        # bounding_box_3d = bounding_box_3d.transpose()
 
                         rotation_matrix = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_matrix()
 
@@ -1573,15 +1563,16 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                     print(coner_box_image)
 
                     # Check object in image plane
-                    # if not (0 <= image_pos[0, 0] <= 1920 and 0 <= image_pos[1, 0] <= 1200):
-                    #     continue
+                    if not (0 <= image_pos[0, 0] <= 1920 and 0 <= image_pos[1, 0] <= 1200):
+                        continue
 
                     count_index = 0
                     for i in range(8):
-                        if not (0 <= coner_box_image[0, i] <= 1920 and 0 <= coner_box_image[1, i] <= 1200):
+                        if (0 <= coner_box_image[0, i] <= 1920 and 0 <= coner_box_image[1, i] <= 1200):
                             count_index += 1
                     
-                    if count_index > 0:
+                    # Check object in image plane
+                    if (8 - count_index) > 1:
                         continue
 
                     # 3d position in s110_base with z=0
@@ -1687,42 +1678,26 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                         # Eight points of the object in the LiDAR frame
                         bounding_box_3d = np.array(
                             [
-                                [-l / 2, -w / 2, -h / 2],
-                                [+l / 2, -w / 2, -h / 2],
-                                [+l / 2, +w / 2, -h / 2],
-                                [-l / 2, +w / 2, -h / 2],
-                                [-l / 2, -w / 2, +h / 2],
-                                [+l / 2, -w / 2, +h / 2],
-                                [+l / 2, +w / 2, +h / 2],
-                                [-l / 2, +w / 2, +h / 2],
+                                [position_3d[0] - l / 2, position_3d[0] - l / 2, position_3d[0] + l / 2, position_3d[0] + l / 2, position_3d[0] - l / 2, position_3d[0] - l / 2, position_3d[0] + l / 2, position_3d[0] + l / 2],
+                                [position_3d[1] + w / 2, position_3d[1] - w / 2, position_3d[1] - w / 2, position_3d[1] + w / 2, position_3d[1] + w / 2, position_3d[1] - w / 2, position_3d[1] - w / 2, position_3d[1] + w / 2],
+                                [position_3d[2] - h / 2, position_3d[2] - h / 2, position_3d[2] - h / 2, position_3d[2] - h / 2, position_3d[2] + h / 2, position_3d[2] + h / 2, position_3d[2] + h / 2, position_3d[2] + h / 2],
                             ]
                         )
-
                         bounding_box_3d = bounding_box_3d.transpose()
 
-                        rotation_matrix = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_matrix()
+                        coner_box_image = []
+                        # coner_box_image = perspective.project_from_lidar_south_to_image(coner_box)
 
-                        eight_points = np.tile(np.array([position_3d[0], position_3d[1], position_3d[2]]), (8, 1))
+                        for i in range(8):
+                            lidar_pts = np.array(
+                                [
+                                    [bounding_box_3d[i, 0], bounding_box_3d[i, 0] + rotation[0]],
+                                    [bounding_box_3d[i, 1], bounding_box_3d[i, 1] + rotation[1]],
+                                    [bounding_box_3d[i, 2] - h / 2, bounding_box_3d[i, 2] - h / 2 + rotation[2]],
+                                ]
+                            )   
+                            coner_box_image.append(perspective.project_from_lidar_south_to_image(lidar_pts))
 
-                        coner_box = np.dot(rotation_matrix, bounding_box_3d) + eight_points.transpose()
-
-                        # print("Coner box: ", coner_box.size)
-                        # print(coner_box)
-
-                        # box = np.array(
-                        #     [
-                        #         [coner_box[0, 0], coner_box[0, 1], coner_box[0, 2]],
-                        #         [coner_box[1, 0], coner_box[1, 1], coner_box[1, 2]],
-                        #         [coner_box[2, 0], coner_box[2, 1], coner_box[2, 2]],
-                        #         [coner_box[3, 0], coner_box[3, 1], coner_box[3, 2]],
-                        #         [coner_box[4, 0], coner_box[4, 1], coner_box[4, 2]],
-                        #         [coner_box[5, 0], coner_box[5, 1], coner_box[5, 2]],
-                        #         [coner_box[6, 0], coner_box[6, 1], coner_box[6, 2]],
-                        #         [coner_box[7, 0], coner_box[7, 1], coner_box[7, 2]],
-                        #     ]
-                        # )
-
-                        coner_box_image = perspective.project_from_lidar_south_to_image(coner_box)
 
                         image_pos = perspective.project_from_lidar_south_to_image(
                             np.array(
@@ -1739,42 +1714,25 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                         # Eight points of the object in the LiDAR frame
                         bounding_box_3d = np.array(
                             [
-                                [-l / 2, -w / 2, -h / 2],
-                                [+l / 2, -w / 2, -h / 2],
-                                [+l / 2, +w / 2, -h / 2],
-                                [-l / 2, +w / 2, -h / 2],
-                                [-l / 2, -w / 2, +h / 2],
-                                [+l / 2, -w / 2, +h / 2],
-                                [+l / 2, +w / 2, +h / 2],
-                                [-l / 2, +w / 2, +h / 2],
+                                [position_3d[0] - l / 2, position_3d[0] - l / 2, position_3d[0] + l / 2, position_3d[0] + l / 2, position_3d[0] - l / 2, position_3d[0] - l / 2, position_3d[0] + l / 2, position_3d[0] + l / 2],
+                                [position_3d[1] + w / 2, position_3d[1] - w / 2, position_3d[1] - w / 2, position_3d[1] + w / 2, position_3d[1] + w / 2, position_3d[1] - w / 2, position_3d[1] - w / 2, position_3d[1] + w / 2],
+                                [position_3d[2] - h / 2, position_3d[2] - h / 2, position_3d[2] - h / 2, position_3d[2] - h / 2, position_3d[2] + h / 2, position_3d[2] + h / 2, position_3d[2] + h / 2, position_3d[2] + h / 2],
                             ]
                         )
-
                         bounding_box_3d = bounding_box_3d.transpose()
 
-                        rotation_matrix = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_matrix()
+                        coner_box_image = []
+                        # coner_box_image = perspective.project_from_lidar_south_to_image(coner_box)
 
-                        eight_points = np.tile(np.array([position_3d[0], position_3d[1], position_3d[2]]), (8, 1))
-
-                        coner_box = np.dot(rotation_matrix, bounding_box_3d) + eight_points.transpose()
-
-                        # print("Coner box: ", coner_box.size)
-                        # print(coner_box)
-
-                        # box = np.array(
-                        #     [
-                        #         [coner_box[0, 0], coner_box[0, 1], coner_box[0, 2]],
-                        #         [coner_box[1, 0], coner_box[1, 1], coner_box[1, 2]],
-                        #         [coner_box[2, 0], coner_box[2, 1], coner_box[2, 2]],
-                        #         [coner_box[3, 0], coner_box[3, 1], coner_box[3, 2]],
-                        #         [coner_box[4, 0], coner_box[4, 1], coner_box[4, 2]],
-                        #         [coner_box[5, 0], coner_box[5, 1], coner_box[5, 2]],
-                        #         [coner_box[6, 0], coner_box[6, 1], coner_box[6, 2]],
-                        #         [coner_box[7, 0], coner_box[7, 1], coner_box[7, 2]],
-                        #     ]
-                        # )
-
-                        coner_box_image = perspective.project_from_lidar_north_to_image(coner_box)
+                        for i in range(8):
+                            lidar_pts = np.array(
+                                [
+                                    [bounding_box_3d[i, 0], bounding_box_3d[i, 0] + rotation[0]],
+                                    [bounding_box_3d[i, 1], bounding_box_3d[i, 1] + rotation[1]],
+                                    [bounding_box_3d[i, 2] - h / 2, bounding_box_3d[i, 2] - h / 2 + rotation[2]],
+                                ]
+                            )   
+                            coner_box_image.append(perspective.project_from_lidar_south_to_image(lidar_pts))
 
                         image_pos = perspective.project_from_lidar_north_to_image(
                             np.array(
@@ -1786,18 +1744,19 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                             )
                         )
                     
-                    print("Coner box image: ", coner_box_image.size)
+                    print("Coner box image: ", len(coner_box_image))
                     print(coner_box_image)
 
-                    # Check object in image plane
                     if not (0 <= image_pos[0, 0] <= 1920 and 0 <= image_pos[1, 0] <= 1200):
+                        # count_index += 1
                         continue
 
                     count_index = 0
                     for i in range(8):
-                        if not (0 <= coner_box_image[0, i] <= 1920 and 0 <= coner_box_image[1, i] <= 1200):
+                        if not (0 <= coner_box_image[i][0, 0] <= 1920 and 0 <= coner_box_image[i][1, 0] <= 1200):
                             count_index += 1
                     
+                    # Check object in image plane
                     if count_index > 0:
                         continue
 

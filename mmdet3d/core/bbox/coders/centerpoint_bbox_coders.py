@@ -118,7 +118,7 @@ class CenterPointBBoxCoder(BaseBBoxCoder):
     def encode(self):
         pass
 
-    def decode(self, heat, rot_sine, rot_cosine, hei, dim, vel, reg=None, task_id=-1):
+    def decode(self, heat, rot_sine, rot_cosine, hei, dim, vel, pc_range, reg=None, task_id=-1):
         """Decode bboxes.
 
         Args:
@@ -139,6 +139,12 @@ class CenterPointBBoxCoder(BaseBBoxCoder):
         Returns:
             list[dict]: Decoded boxes.
         """
+
+        print("CenterPointBBoxCoder decode")
+        print("pc_range", pc_range)
+
+        pc_range = pc_range.squeeze().tolist()
+
         batch, cat, _, _ = heat.size()
 
         scores, inds, clses, ys, xs = self._topk(heat, K=self.max_num)
@@ -174,11 +180,11 @@ class CenterPointBBoxCoder(BaseBBoxCoder):
 
         xs = (
             xs.view(batch, self.max_num, 1) * self.out_size_factor * self.voxel_size[0]
-            + self.pc_range[0]
+            + pc_range[0]
         )
         ys = (
             ys.view(batch, self.max_num, 1) * self.out_size_factor * self.voxel_size[1]
-            + self.pc_range[1]
+            + pc_range[1]
         )
 
         if vel is None:  # KITTI FORMAT

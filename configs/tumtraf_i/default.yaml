@@ -1,7 +1,7 @@
 dataset_type: TUMTrafNuscDataset
 #dataset_root: data/tumtraf_v2x_cooperative_perception_dataset_processed/
 # dataset_root: data/tumtraf_i_v2_lidar_3cls_processed/
-dataset_root: data/tumtraf_i_v2_all_3cls_processed_new/
+dataset_root: data/tumtraf_i_v2_all_3cls_processed_4/
 # dataset_root: data/tumtraf_i_v2_fusion_3cls_processed/
 # dataset_root: data/tumtraf_i_mono_processed/
 gt_paste_stop_epoch: -1
