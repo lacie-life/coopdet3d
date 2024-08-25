@@ -107,9 +107,11 @@ class TUMTraf2NuScenesAll(object):
             # pcd_list = sorted(glob(os.path.join(self.load_dir, self.map_version_to_dir[split], 'point_clouds', 's110_lidar_ouster_south_and_north_registered', '*')))
             
             # [x_min, y_min, z_min, x_max, y_max, z_max]
+
+            # Version 5
             lidar_south_range_south_1 = np.asarray([[0.0, -60.0, -10.0, 70.0, 10.0, -2.0]], dtype=np.float32)
-            lidar_south_range_south_2 = np.asarray([[0.0, -5.0, -10.0, 70.0, 65.0, -2.0]], dtype=np.float32)
-            lidar_north_range = np.asarray([[0.0, -60.0, -10.0, 70.0, 10.0, -2.0]], dtype=np.float32)
+            lidar_south_range_south_2 = np.asarray([[0.0, 5.0, -10.0, 70.0, 75.0, -2.0]], dtype=np.float32)
+            lidar_north_range = np.asarray([[0.0, -65.0, -10.0, 70.0, 5.0, -2.0]], dtype=np.float32)
             output_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
             
             for idx, pcd in enumerate(pcd_list_south1):

@@ -1352,8 +1352,8 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
         num_points_in_gt_gt.append(num_points)
 
     lidar_south_range_south_1 = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
-    lidar_south_range_south_2 = [0.0, 0.0, -10.0, 70.0, 70.0, -2.0]
-    lidar_north_range = [0.0, -72.0, -10.0, 70.0, -2.0, -2.0]
+    lidar_south_range_south_2 = [0.0, -5.0, -10.0, 70.0, 65.0, -2.0]
+    lidar_north_range = [0.0, -60.0, -10.0, 70.0, -2.0, -2.0]
 
     class_map = {
             'CAR': 'CAR',
@@ -1566,14 +1566,14 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                     if not (0 <= image_pos[0, 0] <= 1920 and 0 <= image_pos[1, 0] <= 1200):
                         continue
 
-                    count_index = 0
-                    for i in range(8):
-                        if (0 <= coner_box_image[0, i] <= 1920 and 0 <= coner_box_image[1, i] <= 1200):
-                            count_index += 1
+                    # count_index = 0
+                    # for i in range(8):
+                    #     if (0 <= coner_box_image[0, i] <= 1920 and 0 <= coner_box_image[1, i] <= 1200):
+                    #         count_index += 1
                     
-                    # Check object in image plane
-                    if (8 - count_index) > 1:
-                        continue
+                    # # Check object in image plane
+                    # if (8 - count_index) > 1:
+                    #     continue
 
                     # 3d position in s110_base with z=0
                     position_3d_in_s110_base = perspective.project_to_ground(image_pos)
@@ -1751,14 +1751,14 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                         # count_index += 1
                         continue
 
-                    count_index = 0
-                    for i in range(8):
-                        if not (0 <= coner_box_image[i][0, 0] <= 1920 and 0 <= coner_box_image[i][1, 0] <= 1200):
-                            count_index += 1
+                    # count_index = 0
+                    # for i in range(8):
+                    #     if not (0 <= coner_box_image[i][0, 0] <= 1920 and 0 <= coner_box_image[i][1, 0] <= 1200):
+                    #         count_index += 1
                     
-                    # Check object in image plane
-                    if count_index > 0:
-                        continue
+                    # # Check object in image plane
+                    # if count_index > 0:
+                    #     continue
 
 
                     # 3d position in s110_base with z=0

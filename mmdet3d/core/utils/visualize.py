@@ -367,6 +367,9 @@ def visualize_lidar_combo(
             s=radius,
             c="white",
         )
+
+    obj_class_gt = [0] * 3
+    obj_class_pred = [0] * 3
     
     if gtbboxes is not None and len(gtbboxes) > 0:
 
@@ -441,6 +444,13 @@ def visualize_lidar_combo(
                     color=np.array((255, 255, 255)) / 255,
                 )
 
+                if name == "PEDESTRIAN":
+                    obj_class_gt[2] += 1
+                elif name == "CAR":
+                    obj_class_gt[0] += 1
+                elif name == "WHEELER":
+                    obj_class_gt[1] += 1
+
             # name = classes[gtlabels[index]]
             # plt.plot(
             #     coords[index, :, 0],
@@ -501,6 +511,13 @@ def visualize_lidar_combo(
                     color=np.array(color or OBJECT_PALETTE[name]) / 255,
                 )
 
+                if name == "PEDESTRIAN":
+                    obj_class_pred[2] += 1
+                elif name == "CAR":
+                    obj_class_pred[0] += 1
+                elif name == "WHEELER":
+                    obj_class_pred[1] += 1
+
             # name = classes[labels[index]]
             # plt.plot(
             #     coords[index, :, 0],
@@ -508,6 +525,9 @@ def visualize_lidar_combo(
             #     linewidth=thickness,
             #     color=np.array(color or OBJECT_PALETTE[name]) / 255,
             # )
+
+    print("obj_class_gt", obj_class_gt)
+    print("obj_class_pred", obj_class_pred)
     
     mmcv.mkdir_or_exist(os.path.dirname(fpath))
     fig.savefig(
@@ -519,6 +539,8 @@ def visualize_lidar_combo(
         pad_inches=0,
     )
     plt.close()
+
+    return obj_class_gt, obj_class_pred
 
 def visualize_lidar_two(
     fpath: str,

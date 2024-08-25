@@ -79,6 +79,9 @@ def main() -> None:
         )
         model.eval()
 
+    obj_class_gt = [0] * 3
+    obj_class_pred = [0] * 3
+
     for data in tqdm(dataflow):
         metas = data["metas"].data[0][0]
         # name = "{}".format(metas["timestamp"])
@@ -193,7 +196,7 @@ def main() -> None:
         lidar = data["points"].data[0][0].numpy()
 
         if args.mode == "combo":
-            visualize_lidar_combo(
+            obj_class_gt_ , obj_class_pred_ = visualize_lidar_combo(
                 os.path.join(args.out_dir, "fused-lidar", f"{name}.png"),
                 lidar,
                 gtbboxes=gtbboxes,
@@ -205,6 +208,13 @@ def main() -> None:
                 ylim=[pc_range[d] for d in [1, 4]],
                 classes=cfg.object_classes,
             )
+
+            obj_class_gt[0] += obj_class_gt_[0]
+            obj_class_gt[1] += obj_class_gt_[1]
+            obj_class_gt[2] += obj_class_gt_[2]
+            obj_class_pred[0] += obj_class_pred_[0]
+            obj_class_pred[1] += obj_class_pred_[1]
+            obj_class_pred[2] += obj_class_pred_[2]
         else:
             visualize_lidar(
                 os.path.join(args.out_dir, "fused-lidar", f"{name}.png"),
@@ -222,6 +232,9 @@ def main() -> None:
                 masks,
                 classes=cfg.map_classes,
             )
+
+    print("GT: ", obj_class_gt)
+    print("Pred: ", obj_class_pred)
 
 
 if __name__ == "__main__":

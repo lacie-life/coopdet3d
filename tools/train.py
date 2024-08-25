@@ -43,7 +43,7 @@ def main():
     else:
         set_run_dir(args.run_dir)
     cfg.run_dir = args.run_dir
-    cfg.load_from = "/home/lacie/Github/coopdet3d/runs/run_lidar_only_all/epoch_20.pth"
+    cfg.load_from = "/home/lacie/Github/coopdet3d/runs/run_lidar_only_all_4/epoch_20.pth"
 
     # dump config
     cfg.dump(os.path.join(cfg.run_dir, "configs.yaml"))
