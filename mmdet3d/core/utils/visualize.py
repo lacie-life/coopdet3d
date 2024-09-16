@@ -199,7 +199,7 @@ def visualize_camera_combo(
                             canvas,
                             coords[index, start].astype(int),
                             coords[index, end].astype(int),
-                            (128, 128, 128),
+                            (255, 255, 255),
                             thickness,
                             cv2.LINE_AA,
                         )
@@ -430,7 +430,7 @@ def visualize_lidar_combo(
                     coords[index, :, 0],
                     coords[index, :, 1],
                     linewidth=thickness,
-                    color=np.array((128, 128, 128)) / 255,
+                    color=np.array((255, 255, 255)) / 255,
                 )
                 plt.plot([coords[index, 2, 0], coords[index, 3, 0]],
                             [coords[index, 2, 1], coords[index, 3, 1]],
