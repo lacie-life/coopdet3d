@@ -23,6 +23,11 @@ from scipy.spatial.transform import Rotation as R
 import open3d as o3d
 import math
 import json
+import time
+
+def time_synchronized():
+    torch.cuda.synchronize() if torch.cuda.is_available() else None
+    return time.time()
 
 next_detection_id = 0
 
@@ -338,6 +343,8 @@ def main() -> None:
     )
     model.eval()
 
+    time_sum = 0
+
     for data in tqdm(dataflow):
         detections = []
         metas = data["metas"].data[0][0]
@@ -347,7 +354,11 @@ def main() -> None:
         pcd.points = o3d.utility.Vector3dVector(o3dpoints[:, 1:4])
 
         with torch.inference_mode():
+            # torch.cuda.synchronize()
+            t1 = time_synchronized()
             outputs = model(**data)
+            t2 = time_synchronized()
+            time_sum += t2 - t1
 
         bboxes = outputs[0]["boxes_3d"].tensor.numpy()
         scores = outputs[0]["scores_3d"].numpy()
@@ -390,6 +401,9 @@ def main() -> None:
 
         fname = metas["lidar_path"].split("/")[-1].replace(".bin", ".json")
         detections_to_openlabel(detection_list=detections, filename=fname, output_folder_path=args.out_dir)
+
+    print(f"Average inference time: {time_sum / len(dataflow) * 1000:.2f} ms")
+    print(f"Framerate: {1 / (time_sum / len(dataflow)):.2f} fps")
     
 
 if __name__ == "__main__":
