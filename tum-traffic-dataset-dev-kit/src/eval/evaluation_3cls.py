@@ -29,10 +29,23 @@ from src.utils.perspective import parse_perspective
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+# iou_threshold_dict = {
+#     "CAR": 0.5,
+#     "PEDESTRIAN": 0.5,
+#     "WHEELER": 0.5,
+# }
+
 iou_threshold_dict = {
     "CAR": 0.5,
+    "TRUCK": 0.5,
+    "TRAILER": 0.5,
+    "VAN": 0.5,
+    "MOTORCYCLE": 0.5,
+    "BUS": 0.5,
     "PEDESTRIAN": 0.5,
-    "WHEELER": 0.5,
+    "BICYCLE": 0.5,
+    # "EMERGENCY_VEHICLE": 0.5,
+    # "OTHER": 0.5,
 }
 
 superclass_iou_threshold_dict = {"VEHICLE": 0.1, "PEDESTRIAN": 0.1, "BICYCLE": 0.1}  # 0.7  # 0.3  # 0.5
@@ -44,7 +57,7 @@ def get_evaluation_results(
     classes,
     use_superclass=True,
     iou_thresholds=None,
-    num_pr_points=50,
+    num_pr_points=11,
     difficulty_mode="Overall&Distance",
     ap_with_heading=True,
     num_parts=100,
@@ -94,9 +107,9 @@ def get_evaluation_results(
             gt_anno = gt_annotation_frames[sample_idx]
             pred_anno = pred_annotation_frames[sample_idx]
 
-            print("sample_idx", sample_idx)
-            print("gt_anno", gt_anno["name"])
-            print("pred_anno", pred_anno["name"])
+            # print("sample_idx", sample_idx)
+            # print("gt_anno", gt_anno["name"])
+            # print("pred_anno", pred_anno["name"])
 
 
             if len(gt_anno["name"]) == 0 or len(pred_anno["name"]) == 0:
@@ -1351,22 +1364,22 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
         boxes_3d_gt.append(np.hstack((position_3d, l, w, h, rotation)))
         num_points_in_gt_gt.append(num_points)
 
-    lidar_south_range_south_1 = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+    lidar_south_range_south_1 = [0.0, -65.0, -10.0, 70.0, 5.0, -2.0]
     lidar_south_range_south_2 = [0.0, -5.0, -10.0, 70.0, 65.0, -2.0]
-    lidar_north_range = [0.0, -60.0, -10.0, 70.0, -2.0, -2.0]
+    lidar_north_range = [0.0, -65.0, -10.0, 70.0, 5.0, -2.0]
 
-    class_map = {
-            'CAR': 'CAR',
-            'PEDESTRIAN': 'PEDESTRIAN',
-            'TRUCK': 'CAR',
-            'BUS': 'CAR',
-            'TRAILER': 'CAR',
-            'BICYCLE': 'WHEELER',
-            'MOTORCYCLE': 'WHEELER',
-            'VAN': 'CAR',
-            'EMERGENCY_VEHICLE': 'CAR',
-            'OTHER': 'CAR'
-        }
+    # class_map = {
+    #         'CAR': 'CAR',
+    #         'PEDESTRIAN': 'PEDESTRIAN',
+    #         'TRUCK': 'CAR',
+    #         'BUS': 'CAR',
+    #         'TRAILER': 'CAR',
+    #         'BICYCLE': 'WHEELER',
+    #         'MOTORCYCLE': 'WHEELER',
+    #         'VAN': 'CAR',
+    #         'EMERGENCY_VEHICLE': 'CAR',
+    #         'OTHER': 'CAR'
+    #     }
     
     labels_file_list = listdir_fullpath(pred_folder)
     labels_file_list.sort()
@@ -1374,17 +1387,17 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
     gt_list = []
     predict_list = []
 
-    obj_class_gt = [0] * 3
-    obj_class_pred = [0] * 3
+    obj_class_gt = [0] * 8
+    obj_class_pred = [0] * 8
 
     for label_file in labels_file_list:
         # Extract lidar name and camera name from the file name
         lidar_name = label_file.split("/")[-1].split(".")[0][:-3]
         camera_name = label_file.split("/")[-1].split(".")[0][-2:]
 
-        print("Processing file: ", label_file)
-        print("Lidar name: ", lidar_name)
-        print("Camera name: ", camera_name)
+        # print("Processing file: ", label_file)
+        # print("Lidar name: ", lidar_name)
+        # print("Camera name: ", camera_name)
 
         if "south" in lidar_name and camera_name == "s1":
             gt_path = os.path.join(gt_folder, "s110_lidar_ouster_south", lidar_name + ".json")
@@ -1404,8 +1417,8 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
 
         pred_path = label_file
 
-        print("GT path: ", gt_path)
-        print("Pred path: ", pred_path)
+        # print("GT path: ", gt_path)
+        # print("Pred path: ", pred_path)
 
         # if camera_name == "s1" and "south" in lidar_name:
         #     continue
@@ -1443,64 +1456,53 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                     ]
 
                     # Check object in detection area
-                    if "south" in lidar_name and camera_name == "s1":
-                        if not (
-                            lidar_south_range_south_1[0] <= position_3d[0] <= lidar_south_range_south_1[3]
-                            and lidar_south_range_south_1[1] <= position_3d[1] <= lidar_south_range_south_1[4]
-                            and lidar_south_range_south_1[2] <= position_3d[2] <= lidar_south_range_south_1[5]
-                        ):
-                            continue
-                    elif "south" in lidar_name and camera_name == "s2":
-                        if not (
-                            lidar_south_range_south_2[0] <= position_3d[0] <= lidar_south_range_south_2[3]
-                            and lidar_south_range_south_2[1] <= position_3d[1] <= lidar_south_range_south_2[4]
-                            and lidar_south_range_south_2[2] <= position_3d[2] <= lidar_south_range_south_2[5]
-                        ):
-                            continue
-                    elif "north" in lidar_name and camera_name == "s1":
-                        if not (
-                            lidar_north_range[0] <= position_3d[0] <= lidar_north_range[3]
-                            and lidar_north_range[1] <= position_3d[1] <= lidar_north_range[4]
-                            and lidar_north_range[2] <= position_3d[2] <= lidar_north_range[5]
-                        ):
-                            continue
+                    # if "south" in lidar_name and camera_name == "s1":
+                    #     if not (
+                    #         lidar_south_range_south_1[0] <= position_3d[0] <= lidar_south_range_south_1[3]
+                    #         and lidar_south_range_south_1[1] <= position_3d[1] <= lidar_south_range_south_1[4]
+                    #         and lidar_south_range_south_1[2] <= position_3d[2] <= lidar_south_range_south_1[5]
+                    #     ):
+                    #         continue
+                    # elif "south" in lidar_name and camera_name == "s2":
+                    #     if not (
+                    #         lidar_south_range_south_2[0] <= position_3d[0] <= lidar_south_range_south_2[3]
+                    #         and lidar_south_range_south_2[1] <= position_3d[1] <= lidar_south_range_south_2[4]
+                    #         and lidar_south_range_south_2[2] <= position_3d[2] <= lidar_south_range_south_2[5]
+                    #     ):
+                    #         continue
+                    # elif "north" in lidar_name and camera_name == "s1":
+                    #     if not (
+                    #         lidar_north_range[0] <= position_3d[0] <= lidar_north_range[3]
+                    #         and lidar_north_range[1] <= position_3d[1] <= lidar_north_range[4]
+                    #         and lidar_north_range[2] <= position_3d[2] <= lidar_north_range[5]
+                    #     ):
+                    #         continue
 
                     if "south" in lidar_name:
 
                         # Eight points of the object in the LiDAR frame
                         bounding_box_3d = np.array(
                             [
-                                [-l / 2, -l / 2,  l / 2,  l / 2, -l / 2, -l / 2,  l / 2, l / 2],
-                                [ w / 2, -w / 2, -w / 2,  w / 2,  w / 2, -w / 2, -w / 2, w / 2],
-                                [-h / 2, -h / 2, -h / 2, -h / 2,  h / 2,  h / 2,  h / 2, h / 2],
+                                [position_3d[0] - l / 2, position_3d[0] - l / 2, position_3d[0] + l / 2, position_3d[0] + l / 2, position_3d[0] - l / 2, position_3d[0] - l / 2, position_3d[0] + l / 2, position_3d[0] + l / 2],
+                                [position_3d[1] + w / 2, position_3d[1] - w / 2, position_3d[1] - w / 2, position_3d[1] + w / 2, position_3d[1] + w / 2, position_3d[1] - w / 2, position_3d[1] - w / 2, position_3d[1] + w / 2],
+                                [position_3d[2] - h / 2, position_3d[2] - h / 2, position_3d[2] - h / 2, position_3d[2] - h / 2, position_3d[2] + h / 2, position_3d[2] + h / 2, position_3d[2] + h / 2, position_3d[2] + h / 2],
                             ]
                         )
+                        bounding_box_3d = bounding_box_3d.transpose()
 
-                        # bounding_box_3d = bounding_box_3d.transpose()
+                        coner_box_image = []
+                        # coner_box_image = perspective.project_from_lidar_south_to_image(coner_box)
 
-                        rotation_matrix = R.from_quat([quat_x, quat_y, quat_z, quat_w]).as_matrix()
+                        for i in range(8):
+                            lidar_pts = np.array(
+                                [
+                                    [bounding_box_3d[i, 0], bounding_box_3d[i, 0] + rotation[0]],
+                                    [bounding_box_3d[i, 1], bounding_box_3d[i, 1] + rotation[1]],
+                                    [bounding_box_3d[i, 2] - h / 2, bounding_box_3d[i, 2] - h / 2 + rotation[2]],
+                                ]
+                            )   
+                            coner_box_image.append(perspective.project_from_lidar_south_to_image(lidar_pts))
 
-                        eight_points = np.tile(np.array([position_3d[0], position_3d[1], position_3d[2]]), (8, 1))
-
-                        coner_box = np.dot(rotation_matrix, bounding_box_3d) + eight_points.transpose()
-
-                        # print("Coner box: ", coner_box.size)
-                        # print(coner_box)
-
-                        # box = np.array(
-                        #     [
-                        #         [coner_box[0, 0], coner_box[0, 1], coner_box[0, 2]],
-                        #         [coner_box[1, 0], coner_box[1, 1], coner_box[1, 2]],
-                        #         [coner_box[2, 0], coner_box[2, 1], coner_box[2, 2]],
-                        #         [coner_box[3, 0], coner_box[3, 1], coner_box[3, 2]],
-                        #         [coner_box[4, 0], coner_box[4, 1], coner_box[4, 2]],
-                        #         [coner_box[5, 0], coner_box[5, 1], coner_box[5, 2]],
-                        #         [coner_box[6, 0], coner_box[6, 1], coner_box[6, 2]],
-                        #         [coner_box[7, 0], coner_box[7, 1], coner_box[7, 2]],
-                        #     ]
-                        # )
-
-                        coner_box_image = perspective.project_from_lidar_south_to_image(coner_box)
 
                         image_pos = perspective.project_from_lidar_south_to_image(
                             np.array(
@@ -1559,21 +1561,37 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                             )
                         )
                     
-                    print("Coner box image: ", coner_box_image.size)
-                    print(coner_box_image)
+                    # print("Coner box image: ", len(coner_box_image))
+                    # print(coner_box_image)
 
                     # Check object in image plane
                     if not (0 <= image_pos[0, 0] <= 1920 and 0 <= image_pos[1, 0] <= 1200):
                         continue
 
-                    # count_index = 0
-                    # for i in range(8):
-                    #     if (0 <= coner_box_image[0, i] <= 1920 and 0 <= coner_box_image[1, i] <= 1200):
-                    #         count_index += 1
+                    # if label_pred["object_data"]["type"] == "TRUCK":
+                    #     if camera_name == "s2":
+                    #         if image_pos[0, 0] > 1820:
+                    #             continue
+                    #     elif camera_name == "s1":
+                    #         if image_pos[0, 0] < 50:
+                    #             continue
+
+                    # if label_pred["object_data"]["type"] == "TRAILER":
+                    #     if camera_name == "s2":
+                    #         if image_pos[0, 0] > 1800:
+                    #             continue
+                    #     elif camera_name == "s1":
+                    #         if image_pos[0, 0] < 150:
+                    #             continue
+
+                    count_index = 0
+                    for i in range(8):
+                        if (0 <= coner_box_image[i][0, 0] <= 1920 and 0 <= coner_box_image[i][1, 0] <= 1200):
+                            count_index += 1
                     
-                    # # Check object in image plane
-                    # if (8 - count_index) > 1:
-                    #     continue
+                    # Check object in image plane
+                    if count_index < 2:
+                        continue
 
                     # 3d position in s110_base with z=0
                     position_3d_in_s110_base = perspective.project_to_ground(image_pos)
@@ -1597,19 +1615,29 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                         prediction_type=prediction_type,
                     )
 
-                    if label_pred["object_data"]["type"] == "PEDESTRIAN":
-                        obj_class_pred[2] += 1
-                    elif label_pred["object_data"]["type"] == "CAR":
+                    if label_pred["object_data"]["type"] == "CAR":
                         obj_class_pred[0] += 1
-                    elif label_pred["object_data"]["type"] == "WHEELER":
+                    elif label_pred["object_data"]["type"] == "TRUCK":
                         obj_class_pred[1] += 1
+                    elif label_pred["object_data"]["type"] == "TRAILER":
+                        obj_class_pred[2] += 1
+                    elif label_pred["object_data"]["type"] == "VAN":
+                        obj_class_pred[3] += 1
+                    elif label_pred["object_data"]["type"] == "BUS":
+                        obj_class_pred[4] += 1
+                    elif label_pred["object_data"]["type"] == "MOTORCYCLE":
+                        obj_class_pred[5] += 1
+                    elif label_pred["object_data"]["type"] == "PEDESTRIAN":
+                        obj_class_pred[6] += 1
+                    elif label_pred["object_data"]["type"] == "BICYCLE":
+                        obj_class_pred[7] += 1
 
                     attribute = get_attribute_by_name(label_pred["object_data"]["cuboid"]["attributes"]["num"], "score")
                     if attribute is not None:
                         score = attribute["val"]
                         scores_pred.append(score)
 
-        print("name_ped: ", name_ped)
+        # print("name_ped: ", name_ped)
 
         label_dict_pred = {
             "name": np.array(name_ped),
@@ -1651,27 +1679,27 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                     ]
 
                     # Check object in detection area
-                    if lidar_name == "lidar_south" and camera_name == "s1":
-                        if not (
-                            lidar_south_range_south_1[0] <= position_3d[0] <= lidar_south_range_south_1[3]
-                            and lidar_south_range_south_1[1] <= position_3d[1] <= lidar_south_range_south_1[4]
-                            and lidar_south_range_south_1[2] <= position_3d[2] <= lidar_south_range_south_1[5]
-                        ):
-                            continue
-                    elif lidar_name == "lidar_south" and camera_name == "s2":
-                        if not (
-                            lidar_south_range_south_2[0] <= position_3d[0] <= lidar_south_range_south_2[3]
-                            and lidar_south_range_south_2[1] <= position_3d[1] <= lidar_south_range_south_2[4]
-                            and lidar_south_range_south_2[2] <= position_3d[2] <= lidar_south_range_south_2[5]
-                        ):
-                            continue
-                    elif lidar_name == "lidar_north" and camera_name == "s1":
-                        if not (
-                            lidar_north_range[0] <= position_3d[0] <= lidar_north_range[3]
-                            and lidar_north_range[1] <= position_3d[1] <= lidar_north_range[4]
-                            and lidar_north_range[2] <= position_3d[2] <= lidar_north_range[5]
-                        ):
-                            continue
+                    # if lidar_name == "lidar_south" and camera_name == "s1":
+                    #     if not (
+                    #         lidar_south_range_south_1[0] <= position_3d[0] <= lidar_south_range_south_1[3]
+                    #         and lidar_south_range_south_1[1] <= position_3d[1] <= lidar_south_range_south_1[4]
+                    #         and lidar_south_range_south_1[2] <= position_3d[2] <= lidar_south_range_south_1[5]
+                    #     ):
+                    #         continue
+                    # elif lidar_name == "lidar_south" and camera_name == "s2":
+                    #     if not (
+                    #         lidar_south_range_south_2[0] <= position_3d[0] <= lidar_south_range_south_2[3]
+                    #         and lidar_south_range_south_2[1] <= position_3d[1] <= lidar_south_range_south_2[4]
+                    #         and lidar_south_range_south_2[2] <= position_3d[2] <= lidar_south_range_south_2[5]
+                    #     ):
+                    #         continue
+                    # elif lidar_name == "lidar_north" and camera_name == "s1":
+                    #     if not (
+                    #         lidar_north_range[0] <= position_3d[0] <= lidar_north_range[3]
+                    #         and lidar_north_range[1] <= position_3d[1] <= lidar_north_range[4]
+                    #         and lidar_north_range[2] <= position_3d[2] <= lidar_north_range[5]
+                    #     ):
+                    #         continue
 
                     if "south" in lidar_name:
 
@@ -1744,21 +1772,41 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                             )
                         )
                     
-                    print("Coner box image: ", len(coner_box_image))
-                    print(coner_box_image)
+                    # print("Coner box image: ", len(coner_box_image))
+                    # print(coner_box_image)
 
                     if not (0 <= image_pos[0, 0] <= 1920 and 0 <= image_pos[1, 0] <= 1200):
                         # count_index += 1
                         continue
 
-                    # count_index = 0
+                    # if label_gt["object_data"]["type"] == "TRUCK":
+                    #     if camera_name == "s2":
+                    #         if image_pos[0, 0] > 1900:
+                    #             continue
+                    #     elif camera_name == "s1":
+                    #         if image_pos[0, 0] < 50:
+                    #             continue
+
+                    # if label_gt["object_data"]["type"] == "TRAILER":
+                    #     # if camera_name == "s2":
+                    #     #     if image_pos[0, 0] > 1840:
+                    #     #         continue
+                    #     if camera_name == "s1":
+                    #         if image_pos[0, 0] < 40:
+                    #             continue
+
+                    count_index = 0
                     # for i in range(8):
-                    #     if not (0 <= coner_box_image[i][0, 0] <= 1920 and 0 <= coner_box_image[i][1, 0] <= 1200):
+                    #     if (150 <= coner_box_image[i][0, 0] <= 1850 and 10 <= coner_box_image[i][1, 0] <= 1100):
                     #         count_index += 1
+
+                    for i in range(8):
+                        if (0 <= coner_box_image[i][0, 0] <= 1920 and 0 <= coner_box_image[i][1, 0] <= 1200):
+                            count_index += 1
                     
-                    # # Check object in image plane
-                    # if count_index > 0:
-                    #     continue
+                    # Check object in image plane
+                    if count_index < 1:
+                        continue
 
 
                     # 3d position in s110_base with z=0
@@ -1779,23 +1827,34 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                         h,
                         rotation_yaw,
                         position_3d_in_s110_base[:, 0],
-                        class_map[label_gt["object_data"]["type"]],
+                        # class_map[label_gt["object_data"]["type"]],
+                        label_gt["object_data"]["type"],
                         prediction_type=prediction_type,
                     )
 
-                    if class_map[label_gt["object_data"]["type"]] == "PEDESTRIAN":
-                        obj_class_gt[2] += 1
-                    elif class_map[label_gt["object_data"]["type"]] == "CAR":
+                    if label_gt["object_data"]["type"] == "CAR":
                         obj_class_gt[0] += 1
-                    elif class_map[label_gt["object_data"]["type"]] == "WHEELER":
+                    elif label_gt["object_data"]["type"] == "TRUCK":
                         obj_class_gt[1] += 1
+                    elif label_gt["object_data"]["type"] == "TRAILER":
+                        obj_class_gt[2] += 1
+                    elif label_gt["object_data"]["type"] == "VAN":
+                        obj_class_gt[3] += 1
+                    elif label_gt["object_data"]["type"] == "BUS":
+                        obj_class_gt[4] += 1
+                    elif label_gt["object_data"]["type"] == "MOTORCYCLE":
+                        obj_class_gt[5] += 1
+                    elif label_gt["object_data"]["type"] == "PEDESTRIAN":
+                        obj_class_gt[6] += 1
+                    elif label_gt["object_data"]["type"] == "BICYCLE":
+                        obj_class_gt[7] += 1
 
                     attribute = get_attribute_by_name(label_gt["object_data"]["cuboid"]["attributes"]["num"], "score")
                     if attribute is not None:
                         score = attribute["val"]
                         scores_pred.append(score)
 
-        print("name_gt: ", name_gt)
+        # print("name_gt: ", name_gt)
 
         label_dict_gt = {
             "name": np.array(name_gt),
@@ -1901,11 +1960,26 @@ if __name__ == "__main__":
             folder_path_ground_truth, folder_path_predictions, object_min_points
         )
 
+        # classes = [
+        #     "CAR",
+        #     "PEDESTRIAN",
+        #     "WHEELER",
+        # ]
+
+
         classes = [
             "CAR",
+            "TRUCK",
+            "TRAILER",
+            "VAN",
+            "MOTORCYCLE",
+            "BUS",
             "PEDESTRIAN",
-            "WHEELER",
+            "BICYCLE",
+            # "EMERGENCY_VEHICLE",
+            # "OTHER",
         ]
+
         result_str, result_dict = get_evaluation_results(
             gt_data,
             pred_data,
@@ -1913,6 +1987,6 @@ if __name__ == "__main__":
             use_superclass=False,
             difficulty_mode="OVERALL",
             prediction_type=prediction_type,
-            model_eval=1,
+            model_eval=0,
         )
         print(result_str)

@@ -151,17 +151,17 @@ class BEVFusion(Base3DFusionModel):
         return x
 
     def extract_lidar_features(self, x, pc_range) -> torch.Tensor:
-        print("Extract Lidar Features")
-        print(pc_range)
+        # print("Extract Lidar Features")
+        # print(pc_range)
         feats, coords, sizes = self.voxelize(x, pc_range)
-        print("Coord", len(coords))
-        print(len(sizes))
-        print(len(feats))
+        # print("Coord", len(coords))
+        # print(len(sizes))
+        # print(len(feats))
         # print(coords[-1, 0])
         # batch_size = coords[-1, 0] + 1
         # batch_size = 4 # hardcoded for now
         batch_size = len(coords)
-        print(batch_size)
+        # print(batch_size)
         x = self.encoders["lidar"]["backbone"](feats, coords, batch_size, sizes=sizes, pc_range=pc_range)
         return x
 
@@ -170,10 +170,10 @@ class BEVFusion(Base3DFusionModel):
     def voxelize(self, points, pc_range):
         feats, coords, sizes = [], [], []
         for k, res in enumerate(points):
-            print(res.size())
+            # print(res.size())
             ret = self.encoders["lidar"]["voxelize"](res, pc_range[k])
-            print("Voxelize")
-            print(len(ret))
+            # print("Voxelize")
+            # print(len(ret))
             if len(ret) == 3:
                 # hard voxelize
                 f, c, n = ret
@@ -186,10 +186,10 @@ class BEVFusion(Base3DFusionModel):
             if n is not None:
                 sizes.append(n)
 
-        print("===Voxelize===")
-        print(len(feats))
-        print(len(coords))
-        print(len(sizes))
+        # print("===Voxelize===")
+        # print(len(feats))
+        # print(len(coords))
+        # print(len(sizes))
 
 
         # feats = torch.cat(feats, dim=0)
@@ -227,10 +227,10 @@ class BEVFusion(Base3DFusionModel):
         if isinstance(img, list):
             raise NotImplementedError
         else:
-            print("====BEVFusion Forward=====")
-            print(points[0].shape)
+            # print("====BEVFusion Forward=====")
+            # print(points[0].shape)
 
-            print("PC Range", pc_range)
+            # print("PC Range", pc_range)
 
             outputs = self.forward_single(
                 img,
@@ -291,14 +291,14 @@ class BEVFusion(Base3DFusionModel):
                     lidar_aug_matrix,
                     metas,
                 )
-                print("Camera feature")
-                print(feature.size())
+                # print("Camera feature")
+                # print(feature.size())
                 # visualize_feature_map_cam(feature)
             elif sensor == "lidar":
-                print("Lidar feature")
-                print(points[0].shape)
+                # print("Lidar feature")
+                # print(points[0].shape)
                 feature = self.extract_lidar_features(points, pc_range)
-                print(feature.size())
+                # print(feature.size())
                 # visualize_feature_map_lidar(feature)
             else:
                 raise ValueError(f"unsupported sensor: {sensor}")
@@ -324,8 +324,8 @@ class BEVFusion(Base3DFusionModel):
             outputs = {}
             for type, head in self.heads.items():
                 if type == "object":
-                    print("Object Head")
-                    print("pc_range", pc_range)
+                    # print("Object Head")
+                    # print("pc_range", pc_range)
                     pred_dict = head(x, pc_range, metas)
                     losses = head.loss(gt_bboxes_3d, gt_labels_3d, pred_dict, pc_range)
                 elif type == "map":

@@ -66,18 +66,18 @@ class TUMTraf2NuScenesAll(object):
             'MOSTLY_OCCLUDED': 2
         }
 
-        self.class_map = {
-            'CAR': 'CAR',
-            'PEDESTRIAN': 'PEDESTRIAN',
-            'TRUCK': 'CAR',
-            'BUS': 'CAR',
-            'TRAILER': 'CAR',
-            'BICYCLE': 'WHEELER',
-            'MOTORCYCLE': 'WHEELER',
-            'VAN': 'CAR',
-            'EMERGENCY_VEHICLE': 'CAR',
-            'OTHER': 'CAR'
-        }
+        # self.class_map = {
+        #     'CAR': 'CAR',
+        #     'PEDESTRIAN': 'PEDESTRIAN',
+        #     'TRUCK': 'CAR',
+        #     'BUS': 'CAR',
+        #     'TRAILER': 'CAR',
+        #     'BICYCLE': 'WHEELER',
+        #     'MOTORCYCLE': 'WHEELER',
+        #     'VAN': 'CAR',
+        #     'EMERGENCY_VEHICLE': 'CAR',
+        #     'OTHER': 'CAR'
+        # }
 
         self.pickle = []
 
@@ -109,8 +109,26 @@ class TUMTraf2NuScenesAll(object):
             # [x_min, y_min, z_min, x_max, y_max, z_max]
 
             # Version 5
+            # lidar_south_range_south_1 = np.asarray([[0.0, -70.0, -10.0, 70.0, 0.0, -2.0]], dtype=np.float32)
+            # lidar_south_range_south_2 = np.asarray([[0.0, 5.0, -10.0, 70.0, 75.0, -2.0]], dtype=np.float32)
+            # lidar_north_range = np.asarray([[0.0, -65.0, -10.0, 70.0, 5.0, -2.0]], dtype=np.float32)
+            # output_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+
+            # Version 6
+            # lidar_south_range_south_1 = np.asarray([[0.0, -70.0, -10.0, 70.0, 0.0, -2.0]], dtype=np.float32)
+            # lidar_south_range_south_2 = np.asarray([[0.0, 3.0, -10.0, 70.0, 73.0, -2.0]], dtype=np.float32)
+            # lidar_north_range = np.asarray([[0.0, -65.0, -10.0, 70.0, 5.0, -2.0]], dtype=np.float32)
+            # output_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+
+            # # Version 7 note
+            # lidar_south_range_south_1 = np.asarray([[0.0, -67.0, -10.0, 70.0, 3.0, -2.0]], dtype=np.float32)
+            # lidar_south_range_south_2 = np.asarray([[0.0, -3.0, -10.0, 70.0, 67.0, -2.0]], dtype=np.float32)
+            # lidar_north_range = np.asarray([[0.0, -65.0, -10.0, 70.0, 5.0, -2.0]], dtype=np.float32)
+            # output_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+
+            # Version 10
             lidar_south_range_south_1 = np.asarray([[0.0, -60.0, -10.0, 70.0, 10.0, -2.0]], dtype=np.float32)
-            lidar_south_range_south_2 = np.asarray([[0.0, 5.0, -10.0, 70.0, 75.0, -2.0]], dtype=np.float32)
+            lidar_south_range_south_2 = np.asarray([[0.0, 0.0, -10.0, 70.0, 70.0, -2.0]], dtype=np.float32)
             lidar_north_range = np.asarray([[0.0, -65.0, -10.0, 70.0, 5.0, -2.0]], dtype=np.float32)
             output_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
             
@@ -342,7 +360,8 @@ class TUMTraf2NuScenesAll(object):
                     gt_boxes.append(gt_box)
 
                     # Merge classes
-                    gt_names.append(self.class_map[object_data['type']])
+                    # gt_names.append(self.class_map[object_data['type']])
+                    gt_names.append(object_data['type'])
 
                     velocity.append([0, 0])
                     valid_flag.append(True)
@@ -436,7 +455,8 @@ class TUMTraf2NuScenesAll(object):
                     gt_boxes.append(gt_box)
 
                     # Merge classes
-                    gt_names.append(self.class_map[object_data['type']])
+                    # gt_names.append(self.class_map[object_data['type']])
+                    gt_names.append(object_data['type'])
                     
                     velocity.append([0, 0])
                     valid_flag.append(True)
@@ -457,98 +477,98 @@ class TUMTraf2NuScenesAll(object):
 
             infos_list.append(info)
 
-        print(f'Processing North Lidar')
-        for i, pcd_path in enumerate(pcd_list_north):
+        # print(f'Processing North Lidar')
+        # for i, pcd_path in enumerate(pcd_list_north):
 
-            json1_file = open(pcd_labels_list_north[i])
-            json1_str = json1_file.read()
-            lidar_annotation = json.loads(json1_str)
+        #     json1_file = open(pcd_labels_list_north[i])
+        #     json1_str = json1_file.read()
+        #     lidar_annotation = json.loads(json1_str)
 
-            lidar_anno_frame = {}
+        #     lidar_anno_frame = {}
 
-            for j in lidar_annotation['openlabel']['frames']:
-                lidar_anno_frame = lidar_annotation['openlabel']['frames'][j]
+        #     for j in lidar_annotation['openlabel']['frames']:
+        #         lidar_anno_frame = lidar_annotation['openlabel']['frames'][j]
 
-            info = {
-                "lidar_path": pcd_path,
-                "lidar_anno_path": pcd_labels_list_north[i],
-                "sweeps": [],
-                "pc_range": lidar_north_range,
-                "cams": dict(),
-                "lidar2ego": lidar2ego, # No use
-                # "lidar2ego": lidar_north_range, # No use
-                "timestamp": lidar_anno_frame['frame_properties']['timestamp'],
-                "location": lidar_anno_frame['frame_properties']['point_cloud_file_name'].split("_")[2],
-            }
+        #     info = {
+        #         "lidar_path": pcd_path,
+        #         "lidar_anno_path": pcd_labels_list_north[i],
+        #         "sweeps": [],
+        #         "pc_range": lidar_north_range,
+        #         "cams": dict(),
+        #         "lidar2ego": lidar2ego, # No use
+        #         # "lidar2ego": lidar_north_range, # No use
+        #         "timestamp": lidar_anno_frame['frame_properties']['timestamp'],
+        #         "location": lidar_anno_frame['frame_properties']['point_cloud_file_name'].split("_")[2],
+        #     }
 
-            json2_file = open(img_south1_labels_list_north[i])
-            json2_str = json2_file.read()
-            south1_annotation = json.loads(json2_str)
+        #     json2_file = open(img_south1_labels_list_north[i])
+        #     json2_str = json2_file.read()
+        #     south1_annotation = json.loads(json2_str)
 
-            south1_anno_frame = {}
+        #     south1_anno_frame = {}
 
-            for k in south1_annotation['openlabel']['frames']:
-                south1_anno_frame = south1_annotation['openlabel']['frames'][k]
+        #     for k in south1_annotation['openlabel']['frames']:
+        #         south1_anno_frame = south1_annotation['openlabel']['frames'][k]
 
-            img_south1_info = {
-                "data_path": img_south1_list_north[i],
-                "type": 's110_camera_basler_south1_8mm',
-                "lidar2image": lidar_north2s1image,
-                "sensor2ego": south12ego,
-                "sensor2lidar": south12lidar_north,
-                "camera_intrinsics": south1intrinsics,
-                "timestamp": south1_anno_frame['frame_properties']['timestamp'],
-            }
+        #     img_south1_info = {
+        #         "data_path": img_south1_list_north[i],
+        #         "type": 's110_camera_basler_south1_8mm',
+        #         "lidar2image": lidar_north2s1image,
+        #         "sensor2ego": south12ego,
+        #         "sensor2lidar": south12lidar_north,
+        #         "camera_intrinsics": south1intrinsics,
+        #         "timestamp": south1_anno_frame['frame_properties']['timestamp'],
+        #     }
             
-            info["cams"].update({'s110_camera_basler_south1_8mm': img_south1_info})
+        #     info["cams"].update({'s110_camera_basler_south1_8mm': img_south1_info})
 
-            # obtain annotation
+        #     # obtain annotation
 
-            if not test:
-                gt_boxes = []
-                gt_names = []
-                velocity = []
-                valid_flag = []
-                num_lidar_pts = []
-                num_radar_pts = []
+        #     if not test:
+        #         gt_boxes = []
+        #         gt_names = []
+        #         velocity = []
+        #         valid_flag = []
+        #         num_lidar_pts = []
+        #         num_radar_pts = []
 
-                for id in lidar_anno_frame['objects']:
-                    object_data = lidar_anno_frame['objects'][id]['object_data']
+        #         for id in lidar_anno_frame['objects']:
+        #             object_data = lidar_anno_frame['objects'][id]['object_data']
                     
-                    loc = np.asarray(object_data['cuboid']['val'][:3], dtype=np.float32)
-                    dim = np.asarray(object_data['cuboid']['val'][7:], dtype=np.float32)
-                    rot = np.asarray(object_data['cuboid']['val'][3:7], dtype=np.float32) # Quaternion in x,y,z,w
+        #             loc = np.asarray(object_data['cuboid']['val'][:3], dtype=np.float32)
+        #             dim = np.asarray(object_data['cuboid']['val'][7:], dtype=np.float32)
+        #             rot = np.asarray(object_data['cuboid']['val'][3:7], dtype=np.float32) # Quaternion in x,y,z,w
 
-                    rot_temp = Rotation.from_quat(rot)
-                    rot_temp = rot_temp.as_euler('xyz', degrees=False)
+        #             rot_temp = Rotation.from_quat(rot)
+        #             rot_temp = rot_temp.as_euler('xyz', degrees=False)
 
-                    yaw = np.asarray(rot_temp[2], dtype=np.float32)
+        #             yaw = np.asarray(rot_temp[2], dtype=np.float32)
 
-                    gt_box = np.concatenate([loc, dim, -yaw], axis=None)
+        #             gt_box = np.concatenate([loc, dim, -yaw], axis=None)
 
-                    gt_boxes.append(gt_box)
+        #             gt_boxes.append(gt_box)
 
-                    # Merge classes
-                    gt_names.append(self.class_map[object_data['type']])
+        #             # Merge classes
+        #             gt_names.append(self.class_map[object_data['type']])
 
-                    velocity.append([0, 0])
-                    valid_flag.append(True)
+        #             velocity.append([0, 0])
+        #             valid_flag.append(True)
 
-                    for n in object_data['cuboid']['attributes']['num']:
-                        if n['name'] == 'num_points':
-                            num_lidar_pts.append(n['val'])
+        #             for n in object_data['cuboid']['attributes']['num']:
+        #                 if n['name'] == 'num_points':
+        #                     num_lidar_pts.append(n['val'])
                     
-                    num_radar_pts.append(0)
+        #             num_radar_pts.append(0)
 
-                gt_boxes = np.asarray(gt_boxes, dtype=np.float32)
-                info['gt_boxes'] = gt_boxes
-                info['gt_names'] = np.array(gt_names)
-                info["gt_velocity"] = np.array(velocity).reshape(-1, 2)
-                info["num_lidar_pts"] = np.array(num_lidar_pts)
-                info["num_radar_pts"] = np.array(num_radar_pts)
-                info["valid_flag"] = np.array(valid_flag, dtype=bool)
+        #         gt_boxes = np.asarray(gt_boxes, dtype=np.float32)
+        #         info['gt_boxes'] = gt_boxes
+        #         info['gt_names'] = np.array(gt_names)
+        #         info["gt_velocity"] = np.array(velocity).reshape(-1, 2)
+        #         info["num_lidar_pts"] = np.array(num_lidar_pts)
+        #         info["num_radar_pts"] = np.array(num_radar_pts)
+        #         info["valid_flag"] = np.array(valid_flag, dtype=bool)
 
-            infos_list.append(info)
+        #     infos_list.append(info)
 
         print("Data conversion complete")
         print(f'Number of samples: {len(infos_list)}')

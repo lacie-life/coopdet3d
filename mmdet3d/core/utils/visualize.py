@@ -13,25 +13,15 @@ __all__ = ["visualize_camera", "visualize_camera_combo", "visualize_lidar", "vis
 
 
 OBJECT_PALETTE = {
-    "car": (255, 158, 0),
-    "truck": (255, 99, 71),
-    "construction_vehicle": (233, 150, 70),
-    "bus": (255, 69, 0),
-    "trailer": (255, 140, 0),
-    "WHEELER": (112, 128, 144),
-    "motorcycle": (255, 61, 99),
-    "bicycle": (220, 20, 60),
-    "pedestrian": (0, 0, 230),
-    "traffic_cone": (47, 79, 79),
-    "CAR": (0, 204, 246),
-    "TRAILER": (90, 255, 126),
-    "TRUCK": (86, 255, 182),
-    "VAN": (235, 207, 54),
-    "PEDESTRIAN": (233, 118, 249),
-    "BUS": (217, 138, 134),
-    "MOTORCYCLE": (185, 164, 84),
+    "CAR": (0, 255, 255),
+    "TRAILER": (128, 128, 128),
+    "TRUCK": (128, 255, 0),
+    "VAN": (255, 128, 0),
+    "PEDESTRIAN": (255, 0, 255),
+    "BUS": (255, 0, 128),
+    "MOTORCYCLE": (128, 0, 255),
     "OTHER": (199, 199, 199),
-    "BICYCLE": (177, 140, 255),
+    "BICYCLE": (255, 128, 0),
     "EMERGENCY_VEHICLE": (102, 107, 250)
 }
 
@@ -48,7 +38,6 @@ MAP_PALETTE = {
     "lane_divider": (106, 61, 154),
     "divider": (106, 61, 154),
 }
-
 
 def visualize_camera(
     fpath: str,
@@ -134,10 +123,10 @@ def visualize_camera_combo(
     transform: Optional[np.ndarray] = None,
     classes: Optional[List[str]] = None,
     color: Optional[Tuple[int, int, int]] = None,
-    thickness: float = 4,
+    thickness: float = 1,
 ) -> None:
     canvas = image.copy()
-    canvas = cv2.cvtColor(canvas, cv2.COLOR_RGB2BGR)
+    # canvas = cv2.cvtColor(canvas, cv2.COLOR_RGB2BGR)
 
     if gtbboxes is not None and len(gtbboxes) > 0:
         corners = gtbboxes.corners
@@ -172,16 +161,16 @@ def visualize_camera_combo(
         for index in range(coords.shape[0]):
             name = classes[gtlabels[index]]
 
-            print("coords", coords[index])
+            # print("coords", coords[index])
 
             count = 0
             for coord in coords[index]:
                 if not( 0 <= coord[0] <= 1920 and 0 <= coord[1] <= 1200):
                     count += 1
             
-            print("count", count)
+            # print("count", count)
             
-            if count < 5 :
+            if count < 2:
                 for start, end in [
                     (0, 1),
                     (0, 3),
@@ -196,14 +185,24 @@ def visualize_camera_combo(
                     (5, 6),
                     (6, 7),
                 ]:
-                    cv2.line(
-                        canvas,
-                        coords[index, start].astype(int),
-                        coords[index, end].astype(int),
-                        (255, 255, 255),
-                        thickness,
-                        cv2.LINE_AA,
-                    )
+                    if start == 4 and end == 7:
+                        cv2.line(
+                            canvas,
+                            coords[index, start].astype(int),
+                            coords[index, end].astype(int),
+                            (0, 0, 255),
+                            thickness,
+                            cv2.LINE_AA,
+                        )
+                    else:
+                        cv2.line(
+                            canvas,
+                            coords[index, start].astype(int),
+                            coords[index, end].astype(int),
+                            (128, 128, 128),
+                            thickness,
+                            cv2.LINE_AA,
+                        )
         canvas = canvas.astype(np.uint8)
 
     if bboxes is not None and len(bboxes) > 0:
@@ -221,19 +220,19 @@ def visualize_camera_combo(
         coords = coords @ transform.T
         coords = coords.reshape(-1, 8, 4)
 
-        print("coords image 1", coords)
+        # print("coords image 1", coords)
 
         indices = np.all(coords[..., 2] > 0, axis=1)
         coords = coords[indices]
         labels = labels[indices]
 
-        print("coords image 2", coords)
+        # print("coords image 2", coords)
 
         indices = np.argsort(-np.min(coords[..., 2], axis=1))
         coords = coords[indices]
         labels = labels[indices]
 
-        print("coords image 3", coords)
+        # print("coords image 3", coords)
 
         coords = coords.reshape(-1, 4)
         coords[:, 2] = np.clip(coords[:, 2], a_min=1e-5, a_max=1e5)
@@ -244,15 +243,15 @@ def visualize_camera_combo(
     
         for index in range(coords.shape[0]):
             name = classes[labels[index]]
-            print("coords", coords[index])
+            # print("coords", coords[index])
 
             count = 0
             for coord in coords[index]:
                 if not( 0 <= coord[0] <= 1920 and 0 <= coord[1] <= 1200):
                     count += 1
             
-            print("count", count)
-            if count < 5:
+            # print("count", count)
+            if count < 2:
                 for start, end in [
                     (0, 1),
                     (0, 3),
@@ -267,16 +266,26 @@ def visualize_camera_combo(
                     (5, 6),
                     (6, 7),
                 ]:
-                    cv2.line(
-                        canvas,
-                        coords[index, start].astype(int),
-                        coords[index, end].astype(int),
-                        color or OBJECT_PALETTE[name],
-                        thickness,
-                        cv2.LINE_AA,
-                    )
+                    if start == 4 and end == 7:
+                        cv2.line(
+                            canvas,
+                            coords[index, start].astype(int),
+                            coords[index, end].astype(int),
+                            (0, 0, 255),
+                            thickness,
+                            cv2.LINE_AA,
+                        )
+                    else:
+                        cv2.line(
+                            canvas,
+                            coords[index, start].astype(int),
+                            coords[index, end].astype(int),
+                            color or OBJECT_PALETTE[name],
+                            thickness,
+                            cv2.LINE_AA,
+                        )
         canvas = canvas.astype(np.uint8)
-    canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
+    # canvas = cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB)
 
     mmcv.mkdir_or_exist(os.path.dirname(fpath))
     mmcv.imwrite(canvas, fpath)
@@ -368,31 +377,10 @@ def visualize_lidar_combo(
             c="white",
         )
 
-    obj_class_gt = [0] * 3
-    obj_class_pred = [0] * 3
+    obj_class_gt = [0] * 8
+    obj_class_pred = [0] * 8
     
     if gtbboxes is not None and len(gtbboxes) > 0:
-
-        # corners = gtbboxes.corners
-        # num_bboxes = corners.shape[0]
-
-        # coords_ = np.concatenate(
-        #     [corners.reshape(-1, 3), np.ones((num_bboxes * 8, 1))], axis=-1
-        # )
-
-        # if transform.size < 16:
-        #     transform = np.append(transform, [[0.0, 0.0, 0.0, 1.0]], axis=0)
-        
-        # transform = copy.deepcopy(transform).reshape(4, 4)
-        # coords_ = coords_ @ transform.T
-        # coords_ = coords_.reshape(-1, 8, 4)
-
-        # indices = np.all(coords_[..., 2] > 0, axis=1)
-        
-        # tmp_oords = coords_[indices]
-        # labels = labels[indices]
-
-        # coords = tmp_oords[:, [0, 3, 7, 4, 0], :2]
 
         coords = gtbboxes.corners[:, [0, 3, 7, 4, 0], :2]
         for index in range(coords.shape[0]):
@@ -401,8 +389,8 @@ def visualize_lidar_combo(
                 transform = np.append(transform, [[0.0, 0.0, 0.0, 1.0]], axis=0)
         
             transform = copy.deepcopy(transform).reshape(4, 4)
-            print("transform", transform)
-            print("coords", gtbboxes.corners[index].reshape(-1, 3))
+            # print("transform", transform)
+            # print("coords", gtbboxes.corners[index].reshape(-1, 3))
             coords_ = np.concatenate([gtbboxes.corners[index].reshape(-1, 3), np.ones((1 * 8, 1))], axis=-1) @ transform.T
             coords_ = coords_.reshape(-1, 8, 4)
             # print("coords_", coords_)
@@ -433,31 +421,38 @@ def visualize_lidar_combo(
                 if not( 0 <= coord[0][0] <= 1920 and 0 <= coord[0][1] <= 1200):
                     count += 1
             
-            print("count", count)
+            # print("count", count)
 
-            if count == 0:
+            if count < 3:
                 name = classes[gtlabels[index]]
+
                 plt.plot(
                     coords[index, :, 0],
                     coords[index, :, 1],
                     linewidth=thickness,
-                    color=np.array((255, 255, 255)) / 255,
+                    color=np.array((128, 128, 128)) / 255,
                 )
+                plt.plot([coords[index, 2, 0], coords[index, 3, 0]],
+                            [coords[index, 2, 1], coords[index, 3, 1]],
+                            linewidth=thickness, 
+                            color=np.array((255, 0, 0)) / 255)
 
-                if name == "PEDESTRIAN":
-                    obj_class_gt[2] += 1
-                elif name == "CAR":
+                if name == "CAR":
                     obj_class_gt[0] += 1
-                elif name == "WHEELER":
+                elif name == "TRUCK":
                     obj_class_gt[1] += 1
-
-            # name = classes[gtlabels[index]]
-            # plt.plot(
-            #     coords[index, :, 0],
-            #     coords[index, :, 1],
-            #     linewidth=thickness,
-            #     color=np.array((255, 255, 255)) / 255,
-            # )
+                elif name == "TRAILER":
+                    obj_class_gt[2] += 1
+                elif name == "VAN":
+                    obj_class_gt[3] += 1
+                elif name == "BUS":
+                    obj_class_gt[4] += 1
+                elif name == "MOTORCYCLE":
+                    obj_class_gt[5] += 1
+                elif name == "PEDESTRIAN":
+                    obj_class_gt[6] += 1
+                elif name == "BICYCLE":
+                    obj_class_gt[7] += 1
 
 
     if bboxes is not None and len(bboxes) > 0:
@@ -468,8 +463,8 @@ def visualize_lidar_combo(
                 transform = np.append(transform, [[0.0, 0.0, 0.0, 1.0]], axis=0)
         
             transform = copy.deepcopy(transform).reshape(4, 4)
-            print("transform", transform)
-            print("coords", bboxes.corners[index].reshape(-1, 3))
+            # print("transform", transform)
+            # print("coords", bboxes.corners[index].reshape(-1, 3))
             coords_ = np.concatenate([bboxes.corners[index].reshape(-1, 3), np.ones((1 * 8, 1))], axis=-1) @ transform.T
             coords_ = coords_.reshape(-1, 8, 4)
             # print("coords_", coords_)
@@ -500,23 +495,39 @@ def visualize_lidar_combo(
                 if not( 0 <= coord[0][0] <= 1920 and 0 <= coord[0][1] <= 1200):
                     count += 1
             
-            print("count", count)
+            # print("count", count)
 
-            if count == 0:
+            if count < 3:
                 name = classes[labels[index]]
+
+                # print("coords", coords[index])
                 plt.plot(
                     coords[index, :, 0],
                     coords[index, :, 1],
                     linewidth=thickness,
                     color=np.array(color or OBJECT_PALETTE[name]) / 255,
                 )
+                plt.plot([coords[index, 2, 0], coords[index, 3, 0]],
+                         [coords[index, 2, 1], coords[index, 3, 1]],
+                         linewidth=thickness, 
+                         color=np.array((255, 0, 0)) / 255)
 
-                if name == "PEDESTRIAN":
-                    obj_class_pred[2] += 1
-                elif name == "CAR":
+                if name == "CAR":
                     obj_class_pred[0] += 1
-                elif name == "WHEELER":
+                elif name == "TRUCK":
                     obj_class_pred[1] += 1
+                elif name == "TRAILER":
+                    obj_class_pred[2] += 1
+                elif name == "VAN":
+                    obj_class_pred[3] += 1
+                elif name == "BUS":
+                    obj_class_pred[4] += 1
+                elif name == "MOTORCYCLE":
+                    obj_class_pred[5] += 1
+                elif name == "PEDESTRIAN":
+                    obj_class_pred[6] += 1
+                elif name == "BICYCLE":
+                    obj_class_pred[7] += 1
 
             # name = classes[labels[index]]
             # plt.plot(
@@ -526,8 +537,8 @@ def visualize_lidar_combo(
             #     color=np.array(color or OBJECT_PALETTE[name]) / 255,
             # )
 
-    print("obj_class_gt", obj_class_gt)
-    print("obj_class_pred", obj_class_pred)
+    # print("obj_class_gt", obj_class_gt)
+    # print("obj_class_pred", obj_class_pred)
     
     mmcv.mkdir_or_exist(os.path.dirname(fpath))
     fig.savefig(

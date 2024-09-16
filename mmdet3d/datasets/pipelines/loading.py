@@ -82,7 +82,7 @@ class LoadMultiViewImageFromFiles:
                 - img_norm_cfg (dict): Normalization configuration of images.
         """
         filename = results["image_paths"]
-        print(filename)
+        # print(filename)
         # img is of shape (h, w, c, num_views)
         # modified for waymo
         images = []
@@ -103,7 +103,7 @@ class LoadMultiViewImageFromFiles:
         results["pad_shape"] = images[0].size
         results["scale_factor"] = 1.0
 
-        print("Image shape", results["img_shape"])
+        # print("Image shape", results["img_shape"])
         
         return results
 
@@ -286,20 +286,20 @@ class LoadPointsFromMultiSweeps:
                     cloud arrays.
         """
 
-        print("Loading points from multi sweeps")
+        # print("Loading points from multi sweeps")
 
         points = results["points"]
 
-        print("Points shape", points.tensor.shape)
+        # print("Points shape", points.tensor.shape)
 
         points.tensor[:, 4] = 0
         sweep_points_list = [points]
         ts = results["timestamp"] / 1e6
 
-        print("Points shape after loading 1", points.tensor.shape)
+        # print("Points shape after loading 1", points.tensor.shape)
 
         if self.pad_empty_sweeps and len(results["sweeps"]) == 0:
-            print("Points shape after loading 2 Pad empty sweeps")
+            # print("Points shape after loading 2 Pad empty sweeps")
             for i in range(self.sweeps_num):
                 if self.remove_close:
                     sweep_points_list.append(self._remove_close(points))
@@ -342,13 +342,13 @@ class LoadPointsFromMultiSweeps:
                 sweep_points_list.append(points_sweep)
 
 
-        print("Points shape after loading 10", points.tensor.shape)
+        # print("Points shape after loading 10", points.tensor.shape)
 
         points = points.cat(sweep_points_list)
         points = points[:, self.use_dim]
         results["points"] = points
 
-        print("Points shape after loading 11", points.tensor.shape)
+        # print("Points shape after loading 11", points.tensor.shape)
 
         return results
 
@@ -864,15 +864,15 @@ class LoadPointsFromFile:
         """
         lidar_path = results["lidar_path"]
 
-        print("Points from file")
-        print(lidar_path)
+        # print("Points from file")
+        # print(lidar_path)
         
         points = self._load_points(lidar_path)
         points = points.reshape(-1, self.load_dim)
 
-        print(points.shape)
-        print("Bound max: ", points.max(axis=0))
-        print("Bound min: ", points.min(axis=0))
+        # print(points.shape)
+        # print("Bound max: ", points.max(axis=0))
+        # print("Bound min: ", points.min(axis=0))
 
         # TODO: make it more general
         if self.reduce_beams and self.reduce_beams < 32:
@@ -908,9 +908,9 @@ class LoadPointsFromFile:
             points, points_dim=points.shape[-1], attribute_dims=attribute_dims
         )
 
-        print("Points loaded")
-        print(points.points_dim)
-        print(points.shape)
+        # print("Points loaded")
+        # print(points.points_dim)
+        # print(points.shape)
 
         results["points"] = points
 

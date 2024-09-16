@@ -258,23 +258,23 @@ class TransFusionHead(nn.Module):
             ] = F.max_pool2d(heatmap[:, 9], kernel_size=1, stride=1, padding=0)
         
         elif self.test_cfg["dataset"] == "tumtraf_nusc":  # for tumtraf_i with 9 classes#
-            # local_max[
-            #     :,
-            #     7,
-            # ] = F.max_pool2d(heatmap[:, 7], kernel_size=1, stride=1, padding=0)
-            # local_max[
-            #     :,
-            #     8,
-            # ] = F.max_pool2d(heatmap[:, 8], kernel_size=1, stride=1, padding=0)
+            local_max[
+                :,
+                6,
+            ] = F.max_pool2d(heatmap[:, 6], kernel_size=1, stride=1, padding=0)
+            local_max[
+                :,
+                7,
+            ] = F.max_pool2d(heatmap[:, 7], kernel_size=1, stride=1, padding=0)
 
-            local_max[
-                :,
-                1,
-            ] = F.max_pool2d(heatmap[:, 1], kernel_size=1, stride=1, padding=0)
-            local_max[
-                :,
-                2,
-            ] = F.max_pool2d(heatmap[:, 2], kernel_size=1, stride=1, padding=0) # for tumtraf-i with 3 classes#
+            # local_max[
+            #     :,
+            #     1,
+            # ] = F.max_pool2d(heatmap[:, 1], kernel_size=1, stride=1, padding=0)
+            # local_max[
+            #     :,
+            #     2,
+            # ] = F.max_pool2d(heatmap[:, 2], kernel_size=1, stride=1, padding=0) # for tumtraf-i with 3 classes#
         
         elif self.test_cfg["dataset"] == "tumtraf_v2x_nusc":  # for tumtraf-v2x with 6 classes#
             local_max[
@@ -412,8 +412,8 @@ class TransFusionHead(nn.Module):
             list_of_pred_dict.append(pred_dict)
 
         assert len(gt_bboxes_3d) == len(list_of_pred_dict)
-        print("Get targets")
-        print("pc_range", pc_range)
+        # print("Get targets")
+        # print("pc_range", pc_range)
         res_tuple = multi_apply(
             self.get_targets_single,
             gt_bboxes_3d,
@@ -577,7 +577,7 @@ class TransFusionHead(nn.Module):
         grid_size = torch.tensor(self.train_cfg["grid_size"])
         # pc_range = torch.tensor(self.train_cfg["point_cloud_range"])
         pc_range = torch.tensor(pc_range.squeeze().tolist()).to(device)
-        print("pc_range", pc_range)
+        # print("pc_range", pc_range)
         
         voxel_size = torch.tensor(self.train_cfg["voxel_size"])
         feature_map_size = (
@@ -799,24 +799,44 @@ class TransFusionHead(nn.Module):
             )
 
             if self.test_cfg["dataset"] == "nuScenes" or self.test_cfg["dataset"] == "tumtraf_nusc":
+                # self.tasks = [
+                #     dict(
+                #         num_class=1,
+                #         class_names=[],
+                #         # indices=[0, 1, 2, 3, 4, 5, 6, 7],
+                #         indices=[0],
+                #         radius=-1,
+                #     ),
+                #     dict(
+                #         num_class=1,
+                #         class_names=["PEDESTRIAN"],
+                #         indices=[2],
+                #         radius=0.175,
+                #     ),
+                #     dict(
+                #         num_class=1,
+                #         class_names=["WHEELER"],
+                #         indices=[1],
+                #         radius=0.175,
+                #     ),
+                # ]
                 self.tasks = [
                     dict(
-                        num_class=1,
+                        num_class=8,
                         class_names=[],
-                        # indices=[0, 1, 2, 3, 4, 5, 6, 7],
-                        indices=[0],
+                        indices=[0, 1, 2, 3, 4, 5, 7],
                         radius=-1,
                     ),
                     dict(
                         num_class=1,
                         class_names=["PEDESTRIAN"],
-                        indices=[2],
+                        indices=[6],
                         radius=0.175,
                     ),
                     dict(
                         num_class=1,
-                        class_names=["WHEELER"],
-                        indices=[1],
+                        class_names=["traffic_cone"],
+                        indices=[9],
                         radius=0.175,
                     ),
                 ]

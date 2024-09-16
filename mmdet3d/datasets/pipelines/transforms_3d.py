@@ -1019,9 +1019,9 @@ class ObjectRangeFilter:
         """
         # Check points instance type and initialise bev_range
 
-        print("ObjectRangeFilter")
-        print("gt_bboxes_3d", len(data["gt_bboxes_3d"]))
-        print("pc_range", data["pc_range"])
+        # print("ObjectRangeFilter")
+        # print("gt_bboxes_3d", len(data["gt_bboxes_3d"]))
+        # print("pc_range", data["pc_range"])
 
         pc_range = np.array(data["pc_range"].squeeze().tolist(), dtype=np.float32)
 
@@ -1077,24 +1077,24 @@ class PointsRangeFilter:
         points = data["points"]
         pc_range = data["pc_range"].squeeze().tolist()
 
-        print("PointsRangeFilter")
-        print("points", len(points))
-        print("pc_range", pc_range)
+        # print("PointsRangeFilter")
+        # print("points", len(points))
+        # print("pc_range", pc_range)
 
         # points_mask = points.in_range_3d(pc_range)
 
         tmp_point = points.tensor
-        print(tmp_point.shape)
+        # print(tmp_point.shape)
 
-        print(pc_range[0])
-        print(pc_range[1])
-        print(pc_range[2])
-        print(pc_range[3])
-        print(pc_range[4])
-        print(pc_range[5])
+        # print(pc_range[0])
+        # print(pc_range[1])
+        # print(pc_range[2])
+        # print(pc_range[3])
+        # print(pc_range[4])
+        # print(pc_range[5])
 
-        print("Bound max: ", tmp_point.max(dim=0).values)
-        print("Bound min: ", tmp_point.min(dim=0).values)
+        # print("Bound max: ", tmp_point.max(dim=0).values)
+        # print("Bound min: ", tmp_point.min(dim=0).values)
 
         points_mask = (
             (tmp_point[:, 0] > pc_range[0])
@@ -1106,16 +1106,16 @@ class PointsRangeFilter:
         )
 
         # Count number of points in range by summing the mask
-        print(sum(points_mask))
+        # print(sum(points_mask))
 
         clean_points = points[points_mask]
 
-        print("points", len(clean_points))
+        # print("points", len(clean_points))
 
         data["points"] = clean_points
 
-        print("points", len(data["points"]))
-        print("Returning data")
+        # print("points", len(data["points"]))
+        # print("Returning data")
 
         return data
 

@@ -143,11 +143,11 @@ class PillarFeatureNet(nn.Module):
 
         dtype = features[0].dtype
 
-        print("pc_range", pc_range)
-        print("vx", self.vx)
-        print("vy", self.vy)
-        print("x_offset", self.x_offset)
-        print("y_offset", self.y_offset)
+        # print("pc_range", pc_range)
+        # print("vx", self.vx)
+        # print("vy", self.vy)
+        # print("x_offset", self.x_offset)
+        # print("y_offset", self.y_offset)
 
         out_features = []
 
@@ -157,10 +157,10 @@ class PillarFeatureNet(nn.Module):
 
             tmp_pc_range = pc_range[k].squeeze().tolist()
 
-            print("tmp_pc_range", tmp_pc_range)
+            # print("tmp_pc_range", tmp_pc_range)
 
-            self.x_offset = self.vx / 2 + tmp_pc_range[0]
-            self.y_offset = self.vy / 2 + tmp_pc_range[1]
+            x_offset = self.vx / 2 + tmp_pc_range[0]
+            y_offset = self.vy / 2 + tmp_pc_range[1]
 
             # Find distance of x, y, and z from cluster center
             # features = features[:, :, :self.num_input]
@@ -174,10 +174,10 @@ class PillarFeatureNet(nn.Module):
             # modified according to xyz coords
             f_center = torch.zeros_like(feat[:, :, :2])
             f_center[:, :, 0] = feat[:, :, 0] - (
-                coors[k][:, 1].to(dtype).unsqueeze(1) * self.vx + self.x_offset
+                coors[k][:, 1].to(dtype).unsqueeze(1) * self.vx + x_offset
             )
             f_center[:, :, 1] = feat[:, :, 1] - (
-                coors[k][:, 2].to(dtype).unsqueeze(1) * self.vy + self.y_offset
+                coors[k][:, 2].to(dtype).unsqueeze(1) * self.vy + y_offset
             )
 
             # Combine together feature decorations

@@ -140,8 +140,8 @@ class CenterPointBBoxCoder(BaseBBoxCoder):
             list[dict]: Decoded boxes.
         """
 
-        print("CenterPointBBoxCoder decode")
-        print("pc_range", pc_range)
+        # print("CenterPointBBoxCoder decode")
+        # print("pc_range", pc_range)
 
         pc_range = pc_range.squeeze().tolist()
 

@@ -52,8 +52,8 @@ class _Voxelization(Function):
             voxels = points.new_zeros(size=(max_voxels, max_points, points.size(1)))
             coors = points.new_zeros(size=(max_voxels, 3), dtype=torch.int)
             num_points_per_voxel = points.new_zeros(size=(max_voxels,), dtype=torch.int)
-            print("points", points.size())
-            print("pc_range", coors_range)
+            # print("points", points.size())
+            # print("pc_range", coors_range)
             # try:
             voxel_num = hard_voxelize(
                 points,
@@ -78,9 +78,9 @@ class _Voxelization(Function):
             voxels_out = voxels[:voxel_num]
             coors_out = coors[:voxel_num]
             num_points_per_voxel_out = num_points_per_voxel[:voxel_num]
-            print("voxels_out", voxels_out.size())
-            print("coors_out", coors_out.size())
-            print("num_points_per_voxel_out", num_points_per_voxel_out.size())
+            # print("voxels_out", voxels_out.size())
+            # print("coors_out", coors_out.size())
+            # print("num_points_per_voxel_out", num_points_per_voxel_out.size())
             return voxels_out, coors_out, num_points_per_voxel_out
 
 
@@ -129,7 +129,7 @@ class Voxelization(nn.Module):
         self.grid_size = grid_size
         # the origin shape is as [x-len, y-len, z-len]
         # [w, h, d] -> [d, h, w] removed
-        self.pcd_shape = [*input_feat_shape, 1]#[::-1]
+        self.pcd_shape = [*input_feat_shape, 1] # [::-1]
 
     def forward(self, input, pc_range=None):
         """
@@ -141,15 +141,15 @@ class Voxelization(nn.Module):
         else:
             max_voxels = self.max_voxels[1]
 
-        print("Voxelization forward")
-        print(self.point_cloud_range)
+        # print("Voxelization forward")
+        # print(self.point_cloud_range)
 
         if pc_range is not None:
             point_cloud_range = pc_range.squeeze(0).tolist()
         else:
             point_cloud_range = self.point_cloud_range
 
-        print("point_cloud_range", point_cloud_range)
+        # print("point_cloud_range", point_cloud_range)
 
         return voxelization(
             input,

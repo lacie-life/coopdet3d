@@ -453,7 +453,7 @@ class CenterHead(BaseModule):
         # pc_range = torch.tensor(self.train_cfg["point_cloud_range"])
 
         pc_range = torch.tensor(pc_range.squeeze().tolist()).to(device)
-        print("pc_range", pc_range)
+        # print("pc_range", pc_range)
 
         voxel_size = torch.tensor(self.train_cfg["voxel_size"])
 

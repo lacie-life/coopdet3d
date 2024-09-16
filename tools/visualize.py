@@ -79,18 +79,23 @@ def main() -> None:
         )
         model.eval()
 
-    obj_class_gt = [0] * 3
-    obj_class_pred = [0] * 3
+    obj_class_gt = [0] * 8
+    obj_class_pred = [0] * 8
 
     for data in tqdm(dataflow):
         metas = data["metas"].data[0][0]
         # name = "{}".format(metas["timestamp"])
-        print("Lidar path: ", metas["lidar_path"])
+        # print("Lidar path: ", metas["lidar_path"])
         name = "{}".format(metas["lidar_path"].split("/")[-1].split(".")[0])
-        print("Save name:", name)
+        # print("Save name:", name)
 
         pc_range = data["pc_range"].data[0][0][0].numpy().tolist()
-        print("visual pc_range", pc_range)
+        # print("visual pc_range", pc_range)
+
+        if pc_range[1] == -60.0:
+            pc_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+        elif pc_range[1] == 0.0:
+            pc_range = [0.0, 3.0, -10.0, 70.0, 73.0, -2.0]
 
         if args.mode == "pred" or args.mode == "combo":
             with torch.inference_mode():
@@ -212,9 +217,21 @@ def main() -> None:
             obj_class_gt[0] += obj_class_gt_[0]
             obj_class_gt[1] += obj_class_gt_[1]
             obj_class_gt[2] += obj_class_gt_[2]
+            obj_class_gt[3] += obj_class_gt_[3]
+            obj_class_gt[4] += obj_class_gt_[4]
+            obj_class_gt[5] += obj_class_gt_[5]
+            obj_class_gt[6] += obj_class_gt_[6]
+            obj_class_gt[7] += obj_class_gt_[7]
+
             obj_class_pred[0] += obj_class_pred_[0]
             obj_class_pred[1] += obj_class_pred_[1]
             obj_class_pred[2] += obj_class_pred_[2]
+            obj_class_pred[3] += obj_class_pred_[3]
+            obj_class_pred[4] += obj_class_pred_[4]
+            obj_class_pred[5] += obj_class_pred_[5]
+            obj_class_pred[6] += obj_class_pred_[6]
+            obj_class_pred[7] += obj_class_pred_[7]
+            
         else:
             visualize_lidar(
                 os.path.join(args.out_dir, "fused-lidar", f"{name}.png"),

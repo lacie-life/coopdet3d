@@ -23,12 +23,12 @@ class TransFusionBBoxCoder(BaseBBoxCoder):
 
     def encode(self, dst_boxes, pc_range=None):
         if pc_range is None:
-            self.pc_range = self.pc_range
+            pc_range = self.pc_range
         else:
             pc_range = pc_range.squeeze().tolist()
 
-        print("TransFusionBBoxCoder encode")
-        print("pc_range", pc_range)
+        # print("TransFusionBBoxCoder encode")
+        # print("pc_range", pc_range)
 
         targets = torch.zeros([dst_boxes.shape[0], self.code_size]).to(dst_boxes.device)
         targets[:, 0] = (dst_boxes[:, 0] - pc_range[0]) / (self.out_size_factor * self.voxel_size[0])
@@ -65,8 +65,8 @@ class TransFusionBBoxCoder(BaseBBoxCoder):
         final_preds = heatmap.max(1, keepdims=False).indices
         final_scores = heatmap.max(1, keepdims=False).values
 
-        print("TransFusionBBoxCoder decode")
-        print("pc_range", pc_range)
+        # print("TransFusionBBoxCoder decode")
+        # print("pc_range", pc_range)
 
         pc_range = pc_range.squeeze().tolist()
 
