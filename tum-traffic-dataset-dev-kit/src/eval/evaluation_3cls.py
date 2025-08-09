@@ -1987,6 +1987,6 @@ if __name__ == "__main__":
             use_superclass=False,
             difficulty_mode="OVERALL",
             prediction_type=prediction_type,
-            model_eval=0,
+            model_eval=1,
         )
         print(result_str)

@@ -82,20 +82,24 @@ def main() -> None:
     obj_class_gt = [0] * 8
     obj_class_pred = [0] * 8
 
+    data_prefix = "/home/lacie/Github/coopdet3d/data/tumtraf_i_8_cls_v11_viz_processed/val/point_clouds/s110_lidar_ouster_south_and_north_registered"
+
     for data in tqdm(dataflow):
         metas = data["metas"].data[0][0]
         # name = "{}".format(metas["timestamp"])
         # print("Lidar path: ", metas["lidar_path"])
         name = "{}".format(metas["lidar_path"].split("/")[-1].split(".")[0])
-        # print("Save name:", name)
+        print("Save name:", name)
 
         pc_range = data["pc_range"].data[0][0][0].numpy().tolist()
-        # print("visual pc_range", pc_range)
+        print("visual pc_range", pc_range)
 
         if pc_range[1] == -60.0:
-            pc_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+            pc_range = [10.0, -50.0, -10.0, 80.0, 25.0, -2.0]
         elif pc_range[1] == 0.0:
-            pc_range = [0.0, 3.0, -10.0, 70.0, 73.0, -2.0]
+            pc_range = [-25.0, -30.0, -10.0, 110.0, 80.0, -2.0]
+
+        print("visual pc_range", pc_range)
 
         if args.mode == "pred" or args.mode == "combo":
             with torch.inference_mode():
@@ -198,7 +202,21 @@ def main() -> None:
                         classes=cfg.object_classes,
                     )
 
-        lidar = data["points"].data[0][0].numpy()
+        # lidar = data["points"].data[0][0].numpy()
+        lidar = np.fromfile(os.path.join(data_prefix, f"{name}.bin"), dtype=np.float32).reshape(-1, 5)
+
+        print("Lidar shape: ", lidar.shape)
+        print("Lidar range: ", lidar[:, 0].min(), lidar[:, 0].max(), lidar[:, 1].min(), lidar[:, 1].max(), lidar[:, 2].min(), lidar[:, 2].max())
+
+        assert len(pc_range) == 6, "pc_range must have 6 elements"
+
+        indices = (
+            (lidar[:, 0] >= pc_range[0]) & (lidar[:, 0] <= pc_range[3]) &
+            (lidar[:, 1] >= pc_range[1]) & (lidar[:, 1] <= pc_range[4]) &
+            (lidar[:, 2] >= pc_range[2]) & (lidar[:, 2] <= pc_range[5])
+        )
+        
+        lidar = lidar[indices]
 
         if args.mode == "combo":
             obj_class_gt_ , obj_class_pred_ = visualize_lidar_combo(

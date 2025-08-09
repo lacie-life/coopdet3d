@@ -126,10 +126,16 @@ class TUMTraf2NuScenesAll(object):
             # lidar_north_range = np.asarray([[0.0, -65.0, -10.0, 70.0, 5.0, -2.0]], dtype=np.float32)
             # output_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
 
-            # Version 10
-            lidar_south_range_south_1 = np.asarray([[0.0, -60.0, -10.0, 70.0, 10.0, -2.0]], dtype=np.float32)
-            lidar_south_range_south_2 = np.asarray([[0.0, 0.0, -10.0, 70.0, 70.0, -2.0]], dtype=np.float32)
-            lidar_north_range = np.asarray([[0.0, -65.0, -10.0, 70.0, 5.0, -2.0]], dtype=np.float32)
+            # Version 10 - using for prediction
+            # lidar_south_range_south_1 = np.asarray([[0.0, -60.0, -10.0, 70.0, 10.0, -2.0]], dtype=np.float32)
+            # lidar_south_range_south_2 = np.asarray([[0.0, 0.0, -10.0, 70.0, 70.0, -2.0]], dtype=np.float32)
+            # lidar_north_range = np.asarray([[0.0, -65.0, -10.0, 70.0, 5.0, -2.0]], dtype=np.float32)
+            # output_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+
+            # Version 11 - using for visualization
+            lidar_south_range_south_1 = np.asarray([[5.0, -50.0, -10.0, 80.0, 30.0, -2.0]], dtype=np.float32)
+            lidar_south_range_south_2 = np.asarray([[5.0, -30.0, -10.0, 80.0, 50.0, -2.0]], dtype=np.float32)
+            lidar_north_range = np.asarray([[0.0, 0.0, -10.0, 70.0, 70.0, -2.0]], dtype=np.float32)
             output_range = [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
             
             for idx, pcd in enumerate(pcd_list_south1):

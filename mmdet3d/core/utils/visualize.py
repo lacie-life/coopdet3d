@@ -13,7 +13,7 @@ __all__ = ["visualize_camera", "visualize_camera_combo", "visualize_lidar", "vis
 
 
 OBJECT_PALETTE = {
-    "CAR": (0, 255, 255),
+    "CAR": (0, 255, 0),
     "TRAILER": (128, 128, 128),
     "TRUCK": (128, 255, 0),
     "VAN": (255, 128, 0),
@@ -21,8 +21,21 @@ OBJECT_PALETTE = {
     "BUS": (255, 0, 128),
     "MOTORCYCLE": (128, 0, 255),
     "OTHER": (199, 199, 199),
+    "BICYCLE": (0, 128, 255),
+    "EMERGENCY_VEHICLE": (0, 255, 0)
+}
+
+OBJECT_PALETTE_LIDAR = {
+    "CAR": (0, 255, 0),
+    "TRAILER": (128, 128, 128),
+    "TRUCK": (0, 255, 128),
+    "VAN": (0, 128, 255),
+    "PEDESTRIAN": (255, 0, 255),
+    "BUS": (128, 0, 255),
+    "MOTORCYCLE": (255, 0, 128),
+    "OTHER": (199, 199, 199),
     "BICYCLE": (255, 128, 0),
-    "EMERGENCY_VEHICLE": (102, 107, 250)
+    "EMERGENCY_VEHICLE": (0, 255, 0)
 }
 
 MAP_PALETTE = {
@@ -123,9 +136,13 @@ def visualize_camera_combo(
     transform: Optional[np.ndarray] = None,
     classes: Optional[List[str]] = None,
     color: Optional[Tuple[int, int, int]] = None,
-    thickness: float = 1,
+    thickness: float = 2,
 ) -> None:
     canvas = image.copy()
+
+    mmcv.mkdir_or_exist(os.path.dirname(fpath))
+    mmcv.imwrite(canvas, fpath + "_cam")
+
     # canvas = cv2.cvtColor(canvas, cv2.COLOR_RGB2BGR)
 
     if gtbboxes is not None and len(gtbboxes) > 0:
@@ -163,14 +180,19 @@ def visualize_camera_combo(
 
             # print("coords", coords[index])
 
-            count = 0
+            count_gt_c = 0
             for coord in coords[index]:
-                if not( 0 <= coord[0] <= 1920 and 0 <= coord[1] <= 1200):
-                    count += 1
+                # if ("s1" in fpath) and (0 <= coord[0] <= 200 and 0 <= coord[1] <= 300):
+                #     count += 1
+                # elif ("s2" in fpath) and (1800 <= coord[0] <= 1920 and 0 <= coord[1] <= 600):
+                #     count += 1
+
+                if not(0 <= coord[0] <= 1920 and 0 <= coord[1] <= 1200):
+                    count_gt_c += 1
             
             # print("count", count)
             
-            if count < 2:
+            if count_gt_c < 2:
                 for start, end in [
                     (0, 1),
                     (0, 3),
@@ -245,13 +267,18 @@ def visualize_camera_combo(
             name = classes[labels[index]]
             # print("coords", coords[index])
 
-            count = 0
+            count_pred_c = 0
             for coord in coords[index]:
-                if not( 0 <= coord[0] <= 1920 and 0 <= coord[1] <= 1200):
-                    count += 1
+                # if ("s1" in fpath) and (0 <= coord[0] <= 200 and 0 <= coord[1] <= 300):
+                #     count += 1
+                # elif ("s2" in fpath) and (1800 <= coord[0] <= 1920 and 0 <= coord[1] <= 600):
+                #     count += 1
+
+                if not(0 <= coord[0] <= 1920 and 0 <= coord[1] <= 1200):
+                    count_pred_c += 1
             
             # print("count", count)
-            if count < 2:
+            if count_pred_c < 2:
                 for start, end in [
                     (0, 1),
                     (0, 3),
@@ -370,6 +397,9 @@ def visualize_lidar_combo(
     ax.set_axis_off()
 
     if lidar is not None:
+
+        print("lidar", lidar.shape)
+
         plt.scatter(
             lidar[:, 0],
             lidar[:, 1],
@@ -377,13 +407,24 @@ def visualize_lidar_combo(
             c="white",
         )
 
+    mmcv.mkdir_or_exist(os.path.dirname(fpath))
+    fig.savefig(
+        fpath + "_lidar",
+        dpi=10,
+        facecolor="black",
+        format="png",
+        bbox_inches="tight",
+        pad_inches=0,
+    )
+
     obj_class_gt = [0] * 8
     obj_class_pred = [0] * 8
     
     if gtbboxes is not None and len(gtbboxes) > 0:
 
-        coords = gtbboxes.corners[:, [0, 3, 7, 4, 0], :2]
-        for index in range(coords.shape[0]):
+        coords_gt = gtbboxes.corners[:, [0, 3, 7, 4, 0], :2]
+        
+        for index in range(coords_gt.shape[0]):
 
             if transform.size < 16:
                 transform = np.append(transform, [[0.0, 0.0, 0.0, 1.0]], axis=0)
@@ -416,43 +457,66 @@ def visualize_lidar_combo(
 
             coords_ = coords_[..., :2].reshape(-1, 8, 2)
 
-            count = 0
-            for coord in coords_:
-                if not( 0 <= coord[0][0] <= 1920 and 0 <= coord[0][1] <= 1200):
-                    count += 1
             
-            # print("count", count)
+            print("COORDS SHAPE", coords_.shape)
+            for coord in coords_:
+                count_gt = 0
+                for coner in coord:
+                    print("c", coner)
 
-            if count < 3:
-                name = classes[gtlabels[index]]
+                    if not(0 <= coner[0] <= 1920 and 0 <= coner[1] <= 1200):
+                        print("OUT")
+                        count_gt += 1
 
-                plt.plot(
-                    coords[index, :, 0],
-                    coords[index, :, 1],
-                    linewidth=thickness,
-                    color=np.array((255, 255, 255)) / 255,
-                )
-                plt.plot([coords[index, 2, 0], coords[index, 3, 0]],
-                            [coords[index, 2, 1], coords[index, 3, 1]],
-                            linewidth=thickness, 
-                            color=np.array((255, 0, 0)) / 255)
+                    if ("s1" in fpath) and (0 <= coner[0] <= 200 and 0 <= coner[1] <= 300):
+                        print("S1")
+                        print("coord", coord)
+                        count_gt += 1
+                    if ("s2" in fpath) and (1800 <= coner[0] <= 1920 and 0 <= coner[1] <= 600):
+                        print("S2")
+                        print("coord", coord)
+                        count_gt += 1
 
-                if name == "CAR":
-                    obj_class_gt[0] += 1
-                elif name == "TRUCK":
-                    obj_class_gt[1] += 1
-                elif name == "TRAILER":
-                    obj_class_gt[2] += 1
-                elif name == "VAN":
-                    obj_class_gt[3] += 1
-                elif name == "BUS":
-                    obj_class_gt[4] += 1
-                elif name == "MOTORCYCLE":
-                    obj_class_gt[5] += 1
-                elif name == "PEDESTRIAN":
-                    obj_class_gt[6] += 1
-                elif name == "BICYCLE":
-                    obj_class_gt[7] += 1
+                    if ("s2" in fpath) and ("1646667397_054411151" in fpath) and (classes[gtlabels[index]] == "TRAILER"):
+                        count_gt += 100
+                            # exit(0)
+                    if ("s2" in fpath) and ("1646667398_757203994" in fpath) and (classes[gtlabels[index]] == "TRAILER"):
+                        count_gt += 100
+                            # exit(0)
+                    
+            
+                print("count GTTTTTTTTTTT", count_gt)
+
+                if count_gt < 1:
+                    name = classes[gtlabels[index]]
+
+                    plt.plot(
+                        coords_gt[index, :, 0],
+                        coords_gt[index, :, 1],
+                        linewidth=thickness,
+                        color=np.array((255, 255, 255)) / 255,
+                    )
+                    plt.plot([coords_gt[index, 2, 0], coords_gt[index, 3, 0]],
+                                [coords_gt[index, 2, 1], coords_gt[index, 3, 1]],
+                                linewidth=thickness, 
+                                color=np.array((255, 0, 0)) / 255)
+
+                    if name == "CAR":
+                        obj_class_gt[0] += 1
+                    elif name == "TRUCK":
+                        obj_class_gt[1] += 1
+                    elif name == "TRAILER":
+                        obj_class_gt[2] += 1
+                    elif name == "VAN":
+                        obj_class_gt[3] += 1
+                    elif name == "BUS":
+                        obj_class_gt[4] += 1
+                    elif name == "MOTORCYCLE":
+                        obj_class_gt[5] += 1
+                    elif name == "PEDESTRIAN":
+                        obj_class_gt[6] += 1
+                    elif name == "BICYCLE":
+                        obj_class_gt[7] += 1
 
 
     if bboxes is not None and len(bboxes) > 0:
@@ -490,44 +554,78 @@ def visualize_lidar_combo(
 
             coords_ = coords_[..., :2].reshape(-1, 8, 2)
 
-            count = 0
+            print("COORDS SHAPE", coords_.shape)
             for coord in coords_:
-                if not( 0 <= coord[0][0] <= 1920 and 0 <= coord[0][1] <= 1200):
-                    count += 1
-            
-            # print("count", count)
+                count_pred = 0
+                for coner in coord:
+                    print("c", coner)
 
-            if count < 3:
-                name = classes[labels[index]]
+                    if not(0 <= coner[0] <= 1920 and 0 <= coner[1] <= 1200):
+                        print("OUT")
+                        count_pred += 1
 
-                # print("coords", coords[index])
-                plt.plot(
-                    coords[index, :, 0],
-                    coords[index, :, 1],
-                    linewidth=thickness,
-                    color=np.array(color or OBJECT_PALETTE[name]) / 255,
-                )
-                plt.plot([coords[index, 2, 0], coords[index, 3, 0]],
-                         [coords[index, 2, 1], coords[index, 3, 1]],
-                         linewidth=thickness, 
-                         color=np.array((255, 0, 0)) / 255)
+                    if ("s1" in fpath) and (0 <= coord[0][0] <= 200 and 0 <= coord[0][1] <= 300):
+                        print("S1")
+                        print("coord", coord)
+                        count_pred += 1
+                    if ("s2" in fpath) and (1800 <= coord[0][0] <= 1920 and 0 <= coord[0][1] <= 600):
+                        print("S2")
+                        print("coord", coord)
+                        count_pred += 1
+                    
+                    if ("s2" in fpath) and ("1646667397_054411151" in fpath) and (classes[labels[index]] == "TRAILER"):
+                        count_pred += 100
+                            # exit(0)
+                    if ("s2" in fpath) and ("1646667398_757203994" in fpath) and (classes[labels[index]] == "TRAILER"):
+                        count_pred += 100
+                            # exit(0)
 
-                if name == "CAR":
-                    obj_class_pred[0] += 1
-                elif name == "TRUCK":
-                    obj_class_pred[1] += 1
-                elif name == "TRAILER":
-                    obj_class_pred[2] += 1
-                elif name == "VAN":
-                    obj_class_pred[3] += 1
-                elif name == "BUS":
-                    obj_class_pred[4] += 1
-                elif name == "MOTORCYCLE":
-                    obj_class_pred[5] += 1
-                elif name == "PEDESTRIAN":
-                    obj_class_pred[6] += 1
-                elif name == "BICYCLE":
-                    obj_class_pred[7] += 1
+                # if count_pred > 50:
+                #     print("count", count_pred)
+                #     print(fpath)
+                #     exit(0)
+
+                if count_pred < 1:
+                    name = classes[labels[index]]
+
+                    # if name == "VAN":
+                    #     color_ = (0, 128, 255)
+                    # else:
+                    color_ = OBJECT_PALETTE_LIDAR[name]
+
+                    plt.plot(
+                        coords[index, :, 0],
+                        coords[index, :, 1],
+                        linewidth=thickness,
+                        color=np.array(color_) / 255,
+                    )
+                    plt.plot([coords[index, 2, 0], coords[index, 3, 0]],
+                            [coords[index, 2, 1], coords[index, 3, 1]],
+                            linewidth=thickness, 
+                            color=np.array((255, 0, 0)) / 255)
+
+                    # if name == "VAN":
+                    #     print("VAN")
+                    #     print(OBJECT_PALETTE[name])
+                    #     print(fpath)
+                    #     exit(0)
+
+                    if name == "CAR":
+                        obj_class_pred[0] += 1
+                    elif name == "TRUCK":
+                        obj_class_pred[1] += 1
+                    elif name == "TRAILER":
+                        obj_class_pred[2] += 1
+                    elif name == "VAN":
+                        obj_class_pred[3] += 1
+                    elif name == "BUS":
+                        obj_class_pred[4] += 1
+                    elif name == "MOTORCYCLE":
+                        obj_class_pred[5] += 1
+                    elif name == "PEDESTRIAN":
+                        obj_class_pred[6] += 1
+                    elif name == "BICYCLE":
+                        obj_class_pred[7] += 1
 
             # name = classes[labels[index]]
             # plt.plot(
