@@ -1417,13 +1417,13 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
 
         pred_path = label_file
 
-        # print("GT path: ", gt_path)
-        # print("Pred path: ", pred_path)
+        print("GT path: ", gt_path)
+        print("Pred path: ", pred_path)
 
         # if camera_name == "s1" and "south" in lidar_name:
         #     continue
-        # if camera_name == "s1" and "north" in lidar_name:
-        #     continue
+        if camera_name == "s1" and "north" in lidar_name:
+            continue
 
         # Load pred data
         name_ped = []
@@ -1533,8 +1533,8 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
 
                         coner_box = np.dot(rotation_matrix, bounding_box_3d) + eight_points.transpose()
 
-                        # print("Coner box: ", coner_box.size)
-                        # print(coner_box)
+                        print("Coner box: ", coner_box.size)
+                        print(coner_box)
 
                         # box = np.array(
                         #     [
@@ -1561,8 +1561,8 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                             )
                         )
                     
-                    # print("Coner box image: ", len(coner_box_image))
-                    # print(coner_box_image)
+                    print("Coner box image: ", len(coner_box_image))
+                    print(coner_box_image)
 
                     # Check object in image plane
                     if not (0 <= image_pos[0, 0] <= 1920 and 0 <= image_pos[1, 0] <= 1200):
@@ -1585,6 +1585,7 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                     #             continue
 
                     count_index = 0
+
                     for i in range(8):
                         if (0 <= coner_box_image[i][0, 0] <= 1920 and 0 <= coner_box_image[i][1, 0] <= 1200):
                             count_index += 1

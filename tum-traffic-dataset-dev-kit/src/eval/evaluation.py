@@ -65,6 +65,9 @@ def get_evaluation_results(
         else:
             iou_thresholds = iou_threshold_dict
 
+    print(len(gt_annotation_frames))
+    print(len(pred_annotation_frames))
+
     assert len(gt_annotation_frames) == len(pred_annotation_frames), "the number of GT must match predictions"
     assert difficulty_mode in ["EASY", "MODERATE", "HARD", "OVERALL"], "difficulty mode is not supported"
 
