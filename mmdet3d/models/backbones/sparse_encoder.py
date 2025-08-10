@@ -5,6 +5,7 @@ from typing import Any, Mapping, Sequence
 from mmcv.runner import auto_fp16
 from mmdet.models import BACKBONES
 from torch import nn as nn
+import torch
 
 from mmdet3d.ops import SparseBasicBlock, make_sparse_convmodule
 import torchsparse
@@ -109,7 +110,7 @@ class SparseEncoder(nn.Module):
         )
 
     @auto_fp16(apply_to=("voxel_features",))
-    def forward(self, voxel_features, coors, batch_size, **kwargs):
+    def forward(self, voxel_features, coors, batch_size, sizes, pc_range, **kwargs):
         """Forward of SparseEncoder.
 
         Args:
@@ -121,7 +122,53 @@ class SparseEncoder(nn.Module):
         Returns:
             dict: Backbone features.
         """
+
+        # print(coors)
+        # print(len(voxel_features))
+        # print(voxel_features[0])
+
+        if isinstance(sizes, (list, tuple)):
+            sizes = torch.cat(sizes, dim=0)
+        sizes = torch.as_tensor(sizes) if not torch.is_tensor(sizes) else sizes
+
+        dev = 'cuda:0'
+
+        # coors: list các (Mi, 4) hoặc (4,)
+        coors = torch.cat([
+            (c if torch.is_tensor(c) else torch.as_tensor(c)).to(dev, dtype=torch.int32).view(-1, 4)
+            for c in coors
+        ], dim=0).contiguous()
+
+        # voxel_features: list các (Mi, C) hoặc (C,)
+        voxel_features = torch.cat([
+            (v if torch.is_tensor(v) else torch.as_tensor(v)).to(dev, dtype=torch.float32).view(1, -1) if
+            (not torch.is_tensor(v) and (getattr(v, 'ndim', 1) == 1)) or (torch.is_tensor(v) and v.ndim == 1)
+            else (v if torch.is_tensor(v) else torch.as_tensor(v)).to(dev, dtype=torch.float32)
+            for v in voxel_features
+        ], dim=0).contiguous()
+
+        if voxel_features.ndim == 3:
+            # (N, T, C) -> mean theo số điểm thực trong mỗi voxel
+            # Lưu ý: đảm bảo sizes có chiều N tương ứng
+            N = voxel_features.shape[0]
+            assert sizes.numel() == N, f"sizes length {sizes.numel()} != N {N}"
+            sizes = sizes.to(dev).clamp_min(1)
+            voxel_features = voxel_features.to(device=dev, dtype=torch.float32)
+            voxel_features = (voxel_features.sum(dim=1) / sizes.view(-1, 1)).contiguous()  # (N, C)
+        elif voxel_features.ndim == 2:
+            voxel_features = voxel_features.to(device=dev, dtype=torch.float32).contiguous()
+        else:
+            raise ValueError(f"Unexpected voxel_features ndim={voxel_features.ndim}")
+
         coors = coors.int()
+
+        assert coors.shape[1] == 4, f"coors must be (N,4), got {coors.shape}"
+        assert coors.shape[0] == voxel_features.shape[0], "N (rows) must match between coors & features"
+        
+        # print("Voxel !!!!!")
+        # print(voxel_features.shape)
+        # print(coors.shape)
+        
         # input_sp_tensor = spconv.SparseConvTensor(voxel_features, coors, self.sparse_shape, batch_size)
         spatial_range = (coors[:, 0].max().item() + 1,) + tuple(self.sparse_shape)
         input_sp_tensor = torchsparse.SparseTensor(voxel_features, coors, spatial_range=spatial_range)

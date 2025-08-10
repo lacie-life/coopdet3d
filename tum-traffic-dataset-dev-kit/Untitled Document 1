@@ -1,0 +1,52 @@
+python tum-traffic-dataset-dev-kit/src/visualization/visualize_image_with_3d_boxes.py --camera_id s110_camera_basler_south1_8mm \
+                                                                                      --lidar_id s110_lidar_ouster_south \
+                                                                                      --file_path_calibration_data /home/lacie/Github/coopdet3d/tum-traffic-dataset-dev-kit/calib/s110_camera_basler_south1_8mm.json \
+                                                                                      --input_folder_path_images /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/images/s110_camera_basler_south1_8mm \
+                                                                                      --input_folder_path_point_clouds /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_south \
+                                                                                      --input_folder_path_labels /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/labels_point_clouds/s110_lidar_ouster_south \
+                                                                                      --viz_mode [point_cloud] \
+                                                                                      --viz_color_mode [by_category] \
+                                                                                      --output_folder_path_visualization /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/south_out \
+                                                                                      --detections_coordinate_system_origin [s110_lidar_ouster_south] \
+                                                                                      --labels_coordinate_system_origin [s110_lidar_ouster_south]
+                                                                                      
+                                                                                      
+ python tum-traffic-dataset-dev-kit/src/visualization/visualize_image_with_3d_boxes.py --camera_id s110_camera_basler_south1_8mm \
+                                                                                      --lidar_id s110_lidar_ouster_north \
+                                                                                      --file_path_calibration_data /home/lacie/Github/coopdet3d/tum-traffic-dataset-dev-kit/calib/s110_camera_basler_south1_8mm.json \
+                                                                                      --input_folder_path_images /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/images/s110_camera_basler_south1_8mm \
+                                                                                      --input_folder_path_point_clouds /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_north \
+                                                                                      --input_folder_path_labels /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/labels_point_clouds/s110_lidar_ouster_north \
+                                                                                      --viz_mode [point_cloud] \
+                                                                                      --viz_color_mode [by_category] \
+                                                                                      --output_folder_path_visualization /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/north_out \
+                                                                                      --detections_coordinate_system_origin [s110_lidar_ouster_south] \
+                                                                                      --labels_coordinate_system_origin [s110_lidar_ouster_south]
+                                                                                      
+  python tum-traffic-dataset-dev-kit/src/visualization/visualize_image_with_3d_boxes.py --camera_id s110_camera_basler_south2_8mm \
+                                                                                      --lidar_id s110_lidar_ouster_north \
+                                                                                      --file_path_calibration_data /home/lacie/Github/coopdet3d/tum-traffic-dataset-dev-kit/calib/s110_camera_basler_south2_8mm.json \
+                                                                                      --input_folder_path_images /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/images/s110_camera_basler_south2_8mm \
+                                                                                      --input_folder_path_point_clouds /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_north \
+                                                                                      --input_folder_path_labels /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/labels_point_clouds/s110_lidar_ouster_north \
+                                                                                      --viz_mode [point_cloud] \
+                                                                                      --viz_color_mode [by_category] \
+                                                                                      --output_folder_path_visualization /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/north_out_2 \
+                                                                                      --detections_coordinate_system_origin [s110_lidar_ouster_south] \
+                                                                                      --labels_coordinate_system_origin [s110_lidar_ouster_south]
+                                                                                      
+                                                                                      
+                                                                                      
+                                                                                      
+                                                                                      
+  python tum-traffic-dataset-dev-kit/src/visualization/visualize_image_with_3d_boxes.py --camera_id s110_camera_basler_south2_8mm \
+                                                                                      --lidar_id s110_lidar_ouster_south \
+                                                                                      --file_path_calibration_data /home/lacie/Github/coopdet3d/tum-traffic-dataset-dev-kit/calib/s110_camera_basler_south2_8mm.json \
+                                                                                      --input_folder_path_images /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/images/s110_camera_basler_south2_8mm \
+                                                                                      --input_folder_path_point_clouds /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/point_clouds/s110_lidar_ouster_south \
+                                                                                      --input_folder_path_labels /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/labels_point_clouds/s110_lidar_ouster_south \
+                                                                                      --viz_mode [point_cloud] \
+                                                                                      --viz_color_mode [by_category] \
+                                                                                      --output_folder_path_visualization /home/lacie/Datasets/A9_dataset_original/a9_dataset_r02_s01/south_out_2 \
+                                                                                      --detections_coordinate_system_origin [s110_lidar_ouster_south] \
+                                                                                      --labels_coordinate_system_origin [s110_lidar_ouster_south]

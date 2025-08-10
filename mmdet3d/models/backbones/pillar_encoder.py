@@ -143,6 +143,11 @@ class PillarFeatureNet(nn.Module):
 
         dtype = features[0].dtype
 
+        # print("Pillar !!!!!")
+        # print(features)
+        # print(num_voxels)
+        # print(coors)
+
         # print("pc_range", pc_range)
         # print("vx", self.vx)
         # print("vy", self.vy)

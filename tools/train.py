@@ -20,6 +20,9 @@ from mmdet3d.utils import get_root_logger, convert_sync_batchnorm, recursive_eva
 # debugpy.listen(5678)
 # debugpy.wait_for_client()
 
+import torchsparse.backends
+torchsparse.backends.hash_rsv_ratio=4.0
+
 
 def main():
     dist.init()

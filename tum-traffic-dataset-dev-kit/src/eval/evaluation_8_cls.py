@@ -1480,6 +1480,8 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
 
                     if "south" in lidar_name:
 
+                        print("SOUTH !!!!!!!!!!!!!!")
+
                         # Eight points of the object in the LiDAR frame
                         bounding_box_3d = np.array(
                             [
@@ -1591,7 +1593,7 @@ def load_gt_and_pred_data(gt_folder, pred_folder, object_min_points=0):
                             count_index += 1
                     
                     # Check object in image plane
-                    if count_index < 2:
+                    if count_index < 4:
                         continue
 
                     # 3d position in s110_base with z=0
