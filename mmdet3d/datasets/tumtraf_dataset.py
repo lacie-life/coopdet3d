@@ -1,6 +1,8 @@
 import tempfile
 from os import path as osp
 from typing import Any, Dict
+import pickle
+
 
 import os
 import time
@@ -19,8 +21,8 @@ from .custom_3d import Custom3DDataset
 
 @DATASETS.register_module()
 class TUMTrafNuscDataset(Custom3DDataset):
-    CLASSES = ('CAR', 'TRAILER', 'TRUCK', 'VAN', 'PEDESTRIAN', 'BUS', 'MOTORCYCLE', 'OTHER', 'BICYCLE', 'EMERGENCY_VEHICLE')
-    # CLASSES = ('CAR', 'WHEELER', 'PEDESTRIAN')
+    # CLASSES = ('CAR', 'TRAILER', 'TRUCK', 'VAN', 'PEDESTRIAN', 'BUS', 'MOTORCYCLE', 'OTHER', 'BICYCLE', 'EMERGENCY_VEHICLE')
+    CLASSES = ('CAR', 'WHEELER', 'PEDESTRIAN') # For AI Hub data
 
     # https://github.com/nutonomy/nuscenes-devkit/blob/57889ff20678577025326cfc24e57424a829be0a/python-sdk/nuscenes/eval/detection/evaluate.py#L222 # noqa
     ErrNameMapping = {
@@ -31,24 +33,24 @@ class TUMTrafNuscDataset(Custom3DDataset):
     }
 
     # Modified from the originally used configs of BEVFusion https://github.com/nutonomy/nuscenes-devkit/blob/master/python-sdk/nuscenes/eval/detection/configs/detection_cvpr_2019.json
-    cls_range = {
-        "CAR": 50,
-        "TRUCK": 50,
-        "BUS": 50,
-        "TRAILER": 50,
-        "VAN": 50,
-        'EMERGENCY_VEHICLE': 50,
-        "PEDESTRIAN": 40,
-        "MOTORCYCLE": 40,
-        "BICYCLE": 40,
-        "OTHER": 30
-    }
-
     # cls_range = {
     #     "CAR": 50,
+    #     "TRUCK": 50,
+    #     "BUS": 50,
+    #     "TRAILER": 50,
+    #     "VAN": 50,
+    #     'EMERGENCY_VEHICLE': 50,
     #     "PEDESTRIAN": 40,
-    #     "WHEELER": 40
+    #     "MOTORCYCLE": 40,
+    #     "BICYCLE": 40,
+    #     "OTHER": 30
     # }
+
+    cls_range = { # For AI Hub data
+        "CAR": 50,
+        "PEDESTRIAN": 40,
+        "WHEELER": 40
+    }
 
     dist_fcn = "center_distance"
     dist_ths = [0.5, 1.0, 2.0, 4.0]
@@ -118,11 +120,19 @@ class TUMTrafNuscDataset(Custom3DDataset):
                 otherwise, store empty list.
         """
         info = self.data_infos[idx]
+
+        # print("Getting category IDs for index: ", idx)
+        # print(info)
+
         if self.use_valid_flag:
             mask = info["valid_flag"]
             gt_names = set(info["gt_names"][mask])
         else:
-            gt_names = set(info["gt_names"])
+            # gt_names = set(info["gt_names"])
+
+            # for AI Hub data
+            gt_names = set(info["annos"]['name'])
+
 
         cat_ids = []
         for name in gt_names:
@@ -139,31 +149,64 @@ class TUMTrafNuscDataset(Custom3DDataset):
         Returns:
             list[dict]: List of annotations sorted by timestamps.
         """
-        data = mmcv.load(ann_file)
-        data_infos = list(sorted(data["infos"], key=lambda e: e["timestamp"]))
-        data_infos = data_infos[:: self.load_interval]
-        self.metadata = data["metadata"]
-        self.version = self.metadata["version"]
-        return data_infos
+
+        print("Loading annotations from ", ann_file)
+
+               
+        # Comment for AI Hub data
+
+        # data = mmcv.load(ann_file)
+        # # print(data["metadata"])
+        
+        # data_infos = list(sorted(data["infos"], key=lambda e: e["timestamp"]))
+        
+        # data_infos = data_infos[:: self.load_interval]
+        # self.metadata = data["metadata"]
+        # self.version = self.metadata["version"]
+
+        # For AI Hub data
+        data_infos = []
+        with open(ann_file, 'rb') as f:
+            infos = pickle.load(f)
+            data_infos.extend(infos)
+
+        return data_infos   
 
     def get_data_info(self, index: int) -> Dict[str, Any]:
 
-        # print("=====Getting data info========")
+        print("=====Getting data info========")
         info = self.data_infos[index]
+
+        # print("Processing index: ", info)
 
         # print(info["lidar_path"])
         # print(info["pc_range"])
 
+        # data = dict(
+        #     lidar_path=info["lidar_path"],
+        #     sweeps=info["sweeps"],
+        #     timestamp=info["timestamp"],
+        #     location=info["location"],
+        # )
+
+        # For AI Hub data
+        prefix_lidar = "/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v2/training/velodyne/"
+        prefix_camera = "/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v2/training/image_2/"
         data = dict(
-            lidar_path=info["lidar_path"],
-            sweeps=info["sweeps"],
-            timestamp=info["timestamp"],
-            location=info["location"],
+            lidar_path = prefix_lidar + info["point_cloud"]["lidar_idx"] + ".bin",
+            sweeps = [], # Dummy value,
+            timestamp = 0,
+            location = info["point_cloud"]["lidar_idx"].split('/')[-1].split('.')[0],
         )
 
         # lidar to ego transform
-        data["lidar2ego"] = info["lidar2ego"]
-        data["pc_range"] = info["pc_range"]
+        # data["pc_range"] = info["pc_range"] 
+        # data["lidar2ego"] = info["lidar2ego"]
+
+        # For AI Hub data
+        data["lidar2ego"] = np.eye(3) # Dummy value
+        data["pc_range"] = np.array([ -5.0, -35.0, -17.0, 65.0, 35.0, 1.0 ]) # For AI Hub data
+
 
         if self.modality["use_camera"]:
             data["image_paths"] = []
@@ -173,29 +216,53 @@ class TUMTrafNuscDataset(Custom3DDataset):
             data["camera_intrinsics"] = []
             data["camera2lidar"] = []
 
-            for _, camera_info in info["cams"].items():
-                data["image_paths"].append(camera_info["data_path"])
+            # for _, camera_info in info["cams"].items():
+            #     data["image_paths"].append(camera_info["data_path"])
 
-                # print(data["image_paths"])
+            #     # print(data["image_paths"])
 
-                # lidar to camera transform
-                camera2lidar = camera_info["sensor2lidar"]
-                camera2lidar = np.vstack([camera2lidar, [0.0, 0.0, 0.0, 1.0]])
-                lidar2camera = np.linalg.inv(camera2lidar)
-                lidar2camera = lidar2camera[:-1, :]
-                data["lidar2camera"].append(lidar2camera)
+            #     # lidar to camera transform
+            #     camera2lidar = camera_info["sensor2lidar"]
+            #     camera2lidar = np.vstack([camera2lidar, [0.0, 0.0, 0.0, 1.0]])
+            #     lidar2camera = np.linalg.inv(camera2lidar)
+            #     lidar2camera = lidar2camera[:-1, :]
+            #     data["lidar2camera"].append(lidar2camera)
 
-                # camera intrinsics
-                data["camera_intrinsics"].append(camera_info["camera_intrinsics"])
+            #     # camera intrinsics
+            #     data["camera_intrinsics"].append(camera_info["camera_intrinsics"])
 
-                # lidar to image transform
-                data["lidar2image"].append(camera_info["lidar2image"])
+            #     # lidar to image transform
+            #     data["lidar2image"].append(camera_info["lidar2image"])
 
-                # camera to ego transform
-                data["camera2ego"].append(camera_info["sensor2ego"])
+            #     # camera to ego transform
+            #     data["camera2ego"].append(camera_info["sensor2ego"])
 
-                # camera to lidar transform
-                data["camera2lidar"].append(camera_info["sensor2lidar"])
+            #     # camera to lidar transform
+            #     data["camera2lidar"].append(camera_info["sensor2lidar"])
+
+
+            # For AI Hub data
+            print("Camera info: ", info["image"])
+            data["image_paths"].append(prefix_camera + info["image"]["image_idx"] + ".jpg")
+
+            # print(data["image_paths"])
+
+            # lidar to camera transform, only get 3x3 matrix
+            data["lidar2camera"].append(info["calib"]["Tr_velo_to_cam"][:3, :3])
+
+            # camera intrinsics, only get 3x3 matrix
+            data["camera_intrinsics"].append(info["calib"]["P2"][:3, :3])
+
+            # lidar to image transform
+            lidar2image = info["calib"]["P2"] @ info["calib"]["R0_rect"] @ info["calib"]["Tr_velo_to_cam"]
+            data["lidar2image"].append(lidar2image[:3, :3])
+
+            # camera to ego transform
+            data["camera2ego"].append(np.eye(3)) # Dummy value
+
+            # camera to lidar transform
+            # Convert lidar to camera to camera to lidar
+            data["camera2lidar"].append(np.linalg.inv(info["calib"]["Tr_velo_to_cam"][:3, :3]))
 
             # print("Using camera data")
             # print("Number of cameras: ", len(data["image_paths"]))
@@ -206,6 +273,8 @@ class TUMTrafNuscDataset(Custom3DDataset):
         else:
             annos = self.get_ann_info(index)
         data["ann_info"] = annos
+
+        # print(data)
 
         # print("Data gotten")
 
@@ -226,33 +295,96 @@ class TUMTrafNuscDataset(Custom3DDataset):
                 - gt_names (list[str]): Class names of ground truths.
         """
         info = self.data_infos[index]
-        # filter out bbox containing no points
-        if self.use_valid_flag:
-            mask = info["valid_flag"]
-        else:
-            mask = info["num_lidar_pts"] > 0
-        gt_bboxes_3d = info["gt_boxes"][mask]
-        gt_names_3d = info["gt_names"][mask]
+        
+        # For AI Hub data
+        annos = info["annos"]
+
+        # mask = annos["num_points_in_gt"] > 0
+
+        # gt_bboxes_3d_tmp = annos["bbox"]
+        gt_names_3d = annos["name"]
+
+        # Convert to boxes
+        # print("Ground truth 3D bounding boxes:")
+        # print(gt_bboxes_3d_tmp)
+
+        loc = annos["location"]
+        dims = annos["dimensions"]
+        rots = annos["rotation_y"]
+        score = annos["score"]
+
+        gt_bboxes_3d = []
+
+        for i in range(loc.shape[0]):
+            gt_bboxes_3d.append(
+                [
+                    loc[i][0],
+                    loc[i][1],
+                    loc[i][2],
+                    dims[i][0],
+                    dims[i][1],
+                    dims[i][2],
+                    rots[i],
+                    0.0, # Velocity x
+                    0.0 # Velocity y
+                ]
+            )
+        
+        gt_bboxes_3d = np.array(gt_bboxes_3d, dtype=np.float32)
+        
+        # print(gt_bboxes_3d)
+        
         gt_labels_3d = []
+        
         for cat in gt_names_3d:
             if cat in self.CLASSES:
                 gt_labels_3d.append(self.CLASSES.index(cat))
             else:
                 gt_labels_3d.append(-1)
+
         gt_labels_3d = np.array(gt_labels_3d)
 
-        if self.with_velocity:
-            gt_velocity = info["gt_velocity"][mask]
-            nan_mask = np.isnan(gt_velocity[:, 0])
-            gt_velocity[nan_mask] = [0.0, 0.0]
-            gt_bboxes_3d = np.concatenate([gt_bboxes_3d, gt_velocity], axis=-1)
-
-        # the nuscenes box center is [0.5, 0.5, 0.5], we change it to be
-        # the same as KITTI (0.5, 0.5, 0)
-        # haotian: this is an important change: from 0.5, 0.5, 0.5 -> 0.5, 0.5, 0
         gt_bboxes_3d = LiDARInstance3DBoxes(
-            gt_bboxes_3d, box_dim=gt_bboxes_3d.shape[-1], origin=(0.5, 0.5, 0.5)
+            gt_bboxes_3d, box_dim=gt_bboxes_3d.shape[-1], origin=(0.5, 0.5, 0)
         ).convert_to(self.box_mode_3d)
+
+        # if self.with_velocity:
+        #     gt_velocity = info["gt_velocity"][mask]
+        #     nan_mask = np.isnan(gt_velocity[:, 0])
+        #     gt_velocity[nan_mask] = [0.0, 0.0]
+        #     gt_bboxes_3d = np.concatenate([gt_bboxes_3d, gt_velocity], axis=-1)
+        # ====== end For AI Hub data ======
+
+
+        # # filter out bbox containing no points
+        # if self.use_valid_flag:
+        #     mask = info["valid_flag"]
+        # else:
+        #     mask = info["num_lidar_pts"] > 0
+        # gt_bboxes_3d = info["gt_boxes"][mask]
+        # gt_names_3d = info["gt_names"][mask]
+        
+        # gt_labels_3d = []
+        
+        # for cat in gt_names_3d:
+        #     if cat in self.CLASSES:
+        #         gt_labels_3d.append(self.CLASSES.index(cat))
+        #     else:
+        #         gt_labels_3d.append(-1)
+        # gt_labels_3d = np.array(gt_labels_3d)
+
+        # if self.with_velocity:
+        #     gt_velocity = info["gt_velocity"][mask]
+        #     nan_mask = np.isnan(gt_velocity[:, 0])
+        #     gt_velocity[nan_mask] = [0.0, 0.0]
+        #     gt_bboxes_3d = np.concatenate([gt_bboxes_3d, gt_velocity], axis=-1)
+
+        # # the nuscenes box center is [0.5, 0.5, 0.5], we change it to be
+        # # the same as KITTI (0.5, 0.5, 0)
+        # # haotian: this is an important change: from 0.5, 0.5, 0.5 -> 0.5, 0.5, 0
+        # gt_bboxes_3d = LiDARInstance3DBoxes(
+        #     gt_bboxes_3d, box_dim=gt_bboxes_3d.shape[-1], origin=(0.5, 0.5, 0.5)
+        # ).convert_to(self.box_mode_3d)
 
         anns_results = dict(
             gt_bboxes_3d=gt_bboxes_3d,
@@ -402,18 +534,18 @@ class TUMTrafNuscDataset(Custom3DDataset):
 
         all_annotations = {}
 
-        # class_map = {
-        #     'CAR': 'CAR',
-        #     'PEDESTRIAN': 'PEDESTRIAN',
-        #     'TRUCK': 'CAR',
-        #     'BUS': 'CAR',
-        #     'TRAILER': 'CAR',
-        #     'BICYCLE': 'WHEELER',
-        #     'MOTORCYCLE': 'WHEELER',
-        #     'VAN': 'CAR',
-        #     'EMERGENCY_VEHICLE': 'CAR',
-        #     'OTHER': 'CAR'
-        # }
+        class_map = { # For AI Hub data
+            'CAR': 'CAR',
+            'PEDESTRIAN': 'PEDESTRIAN',
+            'TRUCK': 'CAR',
+            'BUS': 'CAR',
+            'TRAILER': 'CAR',
+            'BICYCLE': 'WHEELER',
+            'MOTORCYCLE': 'WHEELER',
+            'VAN': 'CAR',
+            'EMERGENCY_VEHICLE': 'CAR',
+            'OTHER': 'CAR'
+        }
 
         for i, info in enumerate(self.data_infos):
             json1_file = open(info["lidar_anno_path"])
@@ -455,8 +587,8 @@ class TUMTrafNuscDataset(Custom3DDataset):
                     "rotation": yaw,
                     "velocity": [0, 0],
                     "num_pts": num_lidar_pts,
-                    # "detection_name": class_map[object_data['type']],
-                    "detection_name": object_data['type'],
+                    "detection_name": class_map[object_data['type']], # For AI Hub data
+                    # "detection_name": object_data['type'],
                     "detection_score": -1.0,  # GT samples do not have a score.
                 })
 

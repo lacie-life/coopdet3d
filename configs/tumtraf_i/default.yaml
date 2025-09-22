@@ -1,20 +1,28 @@
 dataset_type: TUMTrafNuscDataset
 #dataset_root: data/tumtraf_v2x_cooperative_perception_dataset_processed/
 # dataset_root: data/tumtraf_i_v2_lidar_3cls_processed/
-dataset_root: data/tumtraf_i_8_cls_v10_processed/
+# dataset_root: data/tumtraf_i_8_cls_v10_processed/
+dataset_root: data/AIHub_KITTI_format_fusion_refined_v2/ # For AI Hub data
 # dataset_root: data/tumtraf_i_8_cls_v11_viz_processed/
 # dataset_root: data/tumtraf_i_v2_fusion_3cls_processed/
 # dataset_root: data/tumtraf_i_mono_processed/
 gt_paste_stop_epoch: -1
 reduce_beams: null
+# load_dim: 4 # For AI Hub data
+# use_dim: 4 # For AI Hub data
 load_dim: 5
 use_dim: 5
 load_augmented: null
 
-point_cloud_range: [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
-voxel_size: [0.13671875, 0.13671875, 8]
+# point_cloud_range: [0.0, -70.0, -10.0, 70.0, 0.0, -2.0]
+# voxel_size: [0.13671875, 0.13671875, 8]
+
+point_cloud_range: [ -5.0, -35.0, -17.0, 65.0, 35.0, 1.0 ] # For AI Hub data
+voxel_size: [0.13671875, 0.13671875, 18] # For AI Hub data
+
 # point_cloud_range: [-70.0, -70.0, -10.0, 70.0, 70.0, -2.0]
 # voxel_size: [0.2734375, 0.2734375, 8]
+
 image_size: [256, 704]
 
 augment2d:
@@ -29,22 +37,22 @@ augment3d:
   rotate: [-0.78539816, 0.78539816] #Try pi to pi
   translate: 0.5
 
-object_classes:
-  - CAR
-  - TRAILER
-  - TRUCK
-  - VAN
-  - PEDESTRIAN
-  - BUS
-  - MOTORCYCLE
-  # - OTHER
-  - BICYCLE
-  #- EMERGENCY_VEHICLE
-
 # object_classes:
 #   - CAR
-#   - WHEELER
+#   - TRAILER
+#   - TRUCK
+#   - VAN
 #   - PEDESTRIAN
+#   - BUS
+#   - MOTORCYCLE
+#   # - OTHER
+#   - BICYCLE
+#   #- EMERGENCY_VEHICLE
+
+object_classes: # For AI Hub data
+  - CAR
+  - WHEELER
+  - PEDESTRIAN
 
 input_modality:
   use_lidar: true
@@ -83,20 +91,25 @@ train_pipeline:
     stop_epoch: ${gt_paste_stop_epoch}
     db_sampler:
       dataset_root: ${dataset_root}
-      info_path: ${dataset_root + "tumtraf_nusc_dbinfos_train.pkl"}
+      # info_path: ${dataset_root + "tumtraf_nusc_dbinfos_train.pkl"}
+      info_path : ${dataset_root + "AIHub_dbinfos_train.pkl"}
       rate: 1.0
       prepare: 
         filter_by_difficulty: [-1]
         filter_by_min_points:
-          CAR: 0
-          TRAILER: 0
-          TRUCK: 0
-          VAN: 0
+          # CAR: 0
+          # TRAILER: 0
+          # TRUCK: 0
+          # VAN: 0
+          # PEDESTRIAN: 0
+          # BUS: 0
+          # MOTORCYCLE: 0
+          # # OTHER: 5
+          # BICYCLE: 0
+          CAR: 0 # For AI Hub data
+          WHEELER: 0
           PEDESTRIAN: 0
-          BUS: 0
-          MOTORCYCLE: 0
-          # OTHER: 5
-          BICYCLE: 0
+  
       classes: ${object_classes}
       sample_groups:
         # CAR: 2
@@ -110,16 +123,20 @@ train_pipeline:
         # BICYCLE: 7
         # #EMERGENCY_VEHICLE: 15
 
-        CAR: 0
-        TRAILER: 0
-        TRUCK: 0
-        VAN: 0
+        # CAR: 0
+        # TRAILER: 0
+        # TRUCK: 0
+        # VAN: 0
+        # PEDESTRIAN: 0
+        # BUS: 0
+        # MOTORCYCLE: 0
+        # # OTHER: 2
+        # BICYCLE: 0
+        # #EMERGENCY_VEHICLE: 15
+ 
+        CAR: 0 # For AI Hub data 
+        WHEELER: 0
         PEDESTRIAN: 0
-        BUS: 0
-        MOTORCYCLE: 0
-        # OTHER: 2
-        BICYCLE: 0
-        #EMERGENCY_VEHICLE: 15
 
       points_loader:
         type: LoadPointsFromFile
@@ -318,24 +335,26 @@ test_pipeline:
       - lidar_aug_matrix
 
 data:
-  samples_per_gpu: 3
-  workers_per_gpu: 3
+  samples_per_gpu: 1
+  workers_per_gpu: 0
   train:
     type: CBGSDataset
     dataset:
       type: ${dataset_type}
       dataset_root: ${dataset_root}
-      ann_file: ${dataset_root + "tumtraf_nusc_infos_train.pkl"}
+      ann_file: ${dataset_root + "AIHub_infos_train.pkl"} # For AI Hub data
+      # ann_file: ${dataset_root + "tumtraf_nusc_infos_train.pkl"} # For non-AI Hub data
       pipeline: ${train_pipeline}
       object_classes: ${object_classes}
       modality: ${input_modality}
       test_mode: false
-      use_valid_flag: true
+      use_valid_flag: false # For AI Hub data
       box_type_3d: LiDAR
   val:
     type: ${dataset_type}
     dataset_root: ${dataset_root}
-    ann_file: ${dataset_root + "tumtraf_nusc_infos_val.pkl"}
+    ann_file: ${dataset_root + "AIHub_infos_val.pkl"} # For AI Hub data
+    # ann_file: ${dataset_root + "tumtraf_nusc_infos_val.pkl"} # For non-AI Hub data
     pipeline: ${val_pipeline}
     object_classes: ${object_classes}
     modality: ${input_modality}
@@ -344,7 +363,8 @@ data:
   test:
     type: ${dataset_type}
     dataset_root: ${dataset_root}
-    ann_file: ${dataset_root + "tumtraf_nusc_infos_val.pkl"}
+    ann_file: ${dataset_root + "AIHub_infos_val.pkl"} # For AI Hub data
+    # ann_file: ${dataset_root + "tumtraf_nusc_infos_val.pkl"} # For non-AI Hub data
     pipeline: ${test_pipeline}
     object_classes: ${object_classes}
     modality: ${input_modality}

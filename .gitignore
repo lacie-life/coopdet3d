@@ -163,6 +163,7 @@ data/tumtraf_v2x_cooperative_perception_dataset
 data/tumtraf_v2x_cooperative_perception_dataset_mini
 data/tumtraf_v2x_cooperative_perception_dataset_processed
 data/tumtraf_v2x_cooperative_perception_dataset_mini_processed
+data/AIHub_KITTI_format_fusion_refined_v2/
 
 
 # inference

@@ -291,6 +291,9 @@ class Custom3DDataset(Dataset):
             return self.prepare_test_data(idx)
         while True:
             data = self.prepare_train_data(idx)
+            print("Getting data")
+            print("Data keys", data.keys())
+            print(data)
             if data is None:
                 idx = self._rand_another(idx)
                 continue

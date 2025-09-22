@@ -6,6 +6,7 @@ import numpy as np
 from nuscenes.map_expansion.map_api import NuScenesMap
 from nuscenes.map_expansion.map_api import locations as LOCATIONS
 from PIL import Image
+import torch
 
 
 from mmdet3d.core.points import BasePoints, get_points_type
@@ -286,13 +287,21 @@ class LoadPointsFromMultiSweeps:
                     cloud arrays.
         """
 
-        # print("Loading points from multi sweeps")
+        print("Loading points from multi sweeps")
 
         points = results["points"]
 
+        # For AI Hub data
+        # Add a dummy temporal dimension
+        # points.tensor = torch.cat(
+        #     [points.tensor, torch.zeros((points.tensor.shape[0], 1), dtype=points.tensor.dtype, device=points.tensor.device)],
+        #     dim=1
+        # )
         # print("Points shape", points.tensor.shape)
 
-        points.tensor[:, 4] = 0
+        # ================ Comment for AI Hub data ================
+        # points.tensor[:, 4] = 0
+        # ================ End comment for AI Hub data ================
         sweep_points_list = [points]
         ts = results["timestamp"] / 1e6
 
@@ -343,6 +352,7 @@ class LoadPointsFromMultiSweeps:
 
 
         # print("Points shape after loading 10", points.tensor.shape)
+        # ================ End comment for AI Hub data ================
 
         points = points.cat(sweep_points_list)
         points = points[:, self.use_dim]
@@ -868,7 +878,16 @@ class LoadPointsFromFile:
         # print(lidar_path)
         
         points = self._load_points(lidar_path)
-        points = points.reshape(-1, self.load_dim)
+
+        # points = points.reshape(-1, self.load_dim)
+
+        # For AI Hub data
+        points = points.reshape(-1, 4)
+
+        # Add a dummy dimension for intensity
+        points = np.concatenate(
+            [points, np.zeros((points.shape[0], 1), dtype=points.dtype)], axis=1
+        )
 
         # print(points.shape)
         # print("Bound max: ", points.max(axis=0))
