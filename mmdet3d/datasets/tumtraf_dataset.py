@@ -204,8 +204,10 @@ class TUMTrafNuscDataset(Custom3DDataset):
         # data["lidar2ego"] = info["lidar2ego"]
 
         # For AI Hub data
-        data["lidar2ego"] = np.eye(3) # Dummy value
-        data["pc_range"] = np.array([ -5.0, -35.0, -17.0, 65.0, 35.0, 1.0 ]) # For AI Hub data
+        I34 = np.concatenate([np.eye(3, dtype=np.float32),
+                      np.zeros((3,1), dtype=np.float32)], axis=1) 
+        data["lidar2ego"] = I34 # Dummy value
+        data["pc_range"] = np.array([[ -5.0, -35.0, -17.0, 65.0, 35.0, 1.0 ]]) # For AI Hub data
 
 
         if self.modality["use_camera"]:
@@ -245,24 +247,35 @@ class TUMTrafNuscDataset(Custom3DDataset):
             print("Camera info: ", info["image"])
             data["image_paths"].append(prefix_camera + info["image"]["image_idx"] + ".jpg")
 
+            P4 = info["calib"]["P2"].astype(np.float32)             
+            R4 = info["calib"]["R0_rect"].astype(np.float32)        
+            T4 = info["calib"]["Tr_velo_to_cam"].astype(np.float32) 
+
+            K33   = P4[:3, :3]                       
+            L2C34 = T4[:3, :4]                     
+            C2L34 = np.linalg.inv(T4)[:3, :4]       
+            L2I34 = (P4 @ R4 @ T4)[:3, :4]    
+
+            I34 = np.concatenate([np.eye(3, dtype=np.float32),
+                      np.zeros((3,1), dtype=np.float32)], axis=1)     
+
             # print(data["image_paths"])
 
-            # lidar to camera transform, only get 3x3 matrix
-            data["lidar2camera"].append(info["calib"]["Tr_velo_to_cam"][:3, :3])
+            # lidar to camera transform
+            data["lidar2camera"].append(L2C34)
 
-            # camera intrinsics, only get 3x3 matrix
-            data["camera_intrinsics"].append(info["calib"]["P2"][:3, :3])
+            # camera intrinsics
+            data["camera_intrinsics"].append(K33)
 
             # lidar to image transform
-            lidar2image = info["calib"]["P2"] @ info["calib"]["R0_rect"] @ info["calib"]["Tr_velo_to_cam"]
-            data["lidar2image"].append(lidar2image[:3, :3])
+            data["lidar2image"].append(L2I34)
 
             # camera to ego transform
-            data["camera2ego"].append(np.eye(3)) # Dummy value
+            data["camera2ego"].append(I34) # Dummy value
 
             # camera to lidar transform
             # Convert lidar to camera to camera to lidar
-            data["camera2lidar"].append(np.linalg.inv(info["calib"]["Tr_velo_to_cam"][:3, :3]))
+            data["camera2lidar"].append(C2L34)
 
             # print("Using camera data")
             # print("Number of cameras: ", len(data["image_paths"]))
