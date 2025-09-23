@@ -314,10 +314,10 @@ def kitti_line(cls_name, x, y, z, l, w, h, ry, score):
 def pick_stem_from_metas(metas):
     # try to pick a reasonable stem from metas
     fn = metas.get("filename", None)
-    if isinstance(fn, (list, tuple)) and len(fn) > 0:
-        return Path(fn[0]).stem          # '/.../L_...0001.jpg' -> 'L_...0001'
-    if isinstance(fn, str) and fn:
-        return Path(fn).stem
+    # if isinstance(fn, (list, tuple)) and len(fn) > 0:
+    #     return Path(fn[0]).stem          # '/.../L_...0001.jpg' -> 'L_...0001'
+    # if isinstance(fn, str) and fn:
+    #     return Path(fn).stem
     if "lidar_path" in metas:
         return Path(metas["lidar_path"]).stem  # '/.../xxx.bin' -> 'xxx'
     return "frame"
@@ -378,7 +378,14 @@ def main() -> None:
     written = []
 
     for data in tqdm(dataflow):
-        outputs = model(**data)
+
+        with torch.inference_mode():
+            # torch.cuda.synchronize()
+            t1 = time_synchronized()
+            outputs = model(**data)
+            t2 = time_synchronized()
+            time_sum += t2 - t1
+
         out = outputs[0]
 
         boxes = out["boxes_3d"].tensor.detach().cpu().numpy()  # expect [N,7] = [x,y,z,l,w,h,ry] in CAMERA coords
@@ -387,8 +394,9 @@ def main() -> None:
         scores = out["scores_3d"].detach().cpu().numpy()
         labels = out["labels_3d"].detach().cpu().numpy()
 
-        keep = scores >= args.min_score
-        boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
+        if args.bbox_score is not None:
+            keep = scores >= args.bbox_score
+            boxes, scores, labels = boxes[keep], scores[keep], labels[keep]
 
         # frame id
         metas = data["metas"].data[0][0]
@@ -397,8 +405,6 @@ def main() -> None:
         lines = []
         for bb, sc, lb in zip(boxes, scores, labels):
             x, y, z, l, w, h, ry = map(float, bb)
-            if args.swap_lw:
-                l, w = w, l
             cls = CLASS_NAMES[int(lb)] if int(lb) < len(CLASS_NAMES) else str(int(lb))
             lines.append(kitti_line(cls, x, y, z, l, w, h, ry, float(sc)))
 

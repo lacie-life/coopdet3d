@@ -3,7 +3,8 @@ import io as sysio
 import numba
 import numpy as np
 
-from .rotate_iou import rotate_iou_gpu_eval
+from rotate_iou import rotate_iou_gpu_eval
+# from rotate_iou_cpu_fallback import rotate_iou_gpu_eval
 
 
 @numba.jit
@@ -430,9 +431,15 @@ def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
     assert len(gt_annos) == len(dt_annos)
     total_dt_num = np.stack([len(a["name"]) for a in dt_annos], 0)
     total_gt_num = np.stack([len(a["name"]) for a in gt_annos], 0)
+
+    # for i in range(10):
+    #     print("GT annos example" + str(gt_annos[i]))
+    #     print("DT annos example" + str(dt_annos[i]))
+
     num_examples = len(gt_annos)
     split_parts = get_split_parts(num_examples, num_parts)
     parted_overlaps = []
+    
     example_idx = 0
 
     for num_part in split_parts:
@@ -558,6 +565,7 @@ def eval_class(gt_annos,
     split_parts = get_split_parts(num_examples, num_parts)
 
     rets = calculate_iou_partly(dt_annos, gt_annos, metric, num_parts)
+    
     overlaps, parted_overlaps, total_dt_num, total_gt_num = rets
     N_SAMPLE_PTS = 41
     num_minoverlap = len(min_overlaps)

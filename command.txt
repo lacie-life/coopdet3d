@@ -39,3 +39,5 @@ torchpack dist-run -np 1 python tools/inference_to_openlabel.py configs/tumtraf_
 python tum-traffic-dataset-dev-kit/src/eval/evaluation_8_cls.py --camera_id s110_camera_basler_south1_8mm --file_path_calibration_data /home/lacie/Github/coopdet3d/tum-traffic-dataset-dev-kit/calib/s110_camera_basler_south1_8mm.json --folder_path_ground_truth /home/lacie/Github/coopdet3d/data/tumtraf_i/val/labels_point_clouds/ --folder_path_predictions /home/lacie/Github/coopdet3d/openlabel_output/fusion_3_8cls_090825_recheck/ --object_min_points 0 --prediction_type lidar3d_supervised --prediction_format openlabel --use_ouster_lidar_only
 
 torchpack dist-run -np 1 python tools/train.py /home/lacie/Github/coopdet3d/configs/tumtraf_i/det/transfusion/secfpn/camera+lidar/swint_v0p075/voxelnet_convfuser.yaml  --load_from /home/lacie/Github/coopdet3d/runs/lidar_8_cls_v10/epoch_20.pth  --run-dir runs/run_bevfusion_fusion_1
+
+torchpack dist-run -np 1 python tools/inference_to_kitti.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml  --checkpoint /home/lacie/Github/coopdet3d/runs/aihub_lidar_only/epoch_20.pth  --split val --out-dir kitti_output/lidar_only_aihub

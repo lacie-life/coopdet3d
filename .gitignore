@@ -172,6 +172,7 @@ inference/
 # runs
 runs/
 openlabel_output/
+kitti_output/
 data/tum*
 
 # weights

@@ -20,6 +20,7 @@ def get_kitti_info_path(idx,
                         relative_path=True):
     img_idx_str = get_image_index_str(idx)
     img_idx_str += file_tail
+
     prefix = pathlib.Path(prefix)
     if training:
         file_path = pathlib.Path('training') / info_type / img_idx_str
@@ -336,14 +337,26 @@ def get_label_annos(label_folder, image_ids=None):
         filepaths = filter(lambda f: prog.match(f.name), filepaths)
         image_ids = [int(p.stem) for p in filepaths]
         image_ids = sorted(image_ids)
+
     if not isinstance(image_ids, list):
         image_ids = list(range(image_ids))
     annos = []
     label_folder = pathlib.Path(label_folder)
+    count = 0
     for idx in image_ids:
-        image_idx = get_image_index_str(idx)
+
+        # count += 1
+        # if count > 70:
+        #     break
+
+        image_idx = idx if isinstance(idx, str) else get_image_index_str(idx)
+        # Remove \n in case that is included in image_idx
+        image_idx = image_idx.strip()
         label_filename = label_folder / (image_idx + '.txt')
+        print("Processing label file: ", label_filename) 
         annos.append(get_label_anno(label_filename))
+        print(get_label_anno(label_filename))
+
     return annos
 
 def area(boxes, add1=False):
