@@ -799,47 +799,47 @@ class TransFusionHead(nn.Module):
             )
 
             if self.test_cfg["dataset"] == "nuScenes" or self.test_cfg["dataset"] == "tumtraf_nusc":
-                # self.tasks = [
-                #     dict(
-                #         num_class=1,
-                #         class_names=[],
-                #         # indices=[0, 1, 2, 3, 4, 5, 6, 7],
-                #         indices=[0],
-                #         radius=-1,
-                #     ),
-                #     dict(
-                #         num_class=1,
-                #         class_names=["PEDESTRIAN"],
-                #         indices=[2],
-                #         radius=0.175,
-                #     ),
-                #     dict(
-                #         num_class=1,
-                #         class_names=["WHEELER"],
-                #         indices=[1],
-                #         radius=0.175,
-                #     ),
-                # ]
                 self.tasks = [
                     dict(
-                        num_class=8,
+                        num_class=1,
                         class_names=[],
-                        indices=[0, 1, 2, 3, 4, 5, 7],
+                        # indices=[0, 1, 2, 3, 4, 5, 6, 7],
+                        indices=[0],
                         radius=-1,
                     ),
                     dict(
                         num_class=1,
                         class_names=["PEDESTRIAN"],
-                        indices=[6],
+                        indices=[2],
                         radius=0.175,
                     ),
                     dict(
                         num_class=1,
-                        class_names=["traffic_cone"],
-                        indices=[9],
+                        class_names=["WHEELER"],
+                        indices=[1],
                         radius=0.175,
                     ),
                 ]
+                # self.tasks = [
+                #     dict(
+                #         num_class=8,
+                #         class_names=[],
+                #         indices=[0, 1, 2, 3, 4, 5, 7],
+                #         radius=-1,
+                #     ),
+                #     dict(
+                #         num_class=1,
+                #         class_names=["PEDESTRIAN"],
+                #         indices=[6],
+                #         radius=0.175,
+                #     ),
+                #     dict(
+                #         num_class=1,
+                #         class_names=["traffic_cone"],
+                #         indices=[9],
+                #         radius=0.175,
+                #     ),
+                # ]
             elif self.test_cfg["dataset"] == "Waymo":
                 self.tasks = [
                     dict(num_class=1, class_names=["Car"], indices=[0], radius=0.7),

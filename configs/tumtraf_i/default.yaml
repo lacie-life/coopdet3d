@@ -335,8 +335,8 @@ test_pipeline:
       - lidar_aug_matrix
 
 data:
-  samples_per_gpu: 1
-  workers_per_gpu: 1
+  samples_per_gpu: 8
+  workers_per_gpu: 8
   train:
     type: CBGSDataset
     dataset:
@@ -372,6 +372,6 @@ data:
     box_type_3d: LiDAR
 
 evaluation:
-  interval: 1
+  interval: 20
   pipeline: ${test_pipeline}
  

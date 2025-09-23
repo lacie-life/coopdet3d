@@ -174,7 +174,7 @@ class TUMTrafNuscDataset(Custom3DDataset):
 
     def get_data_info(self, index: int) -> Dict[str, Any]:
 
-        print("=====Getting data info========")
+        # print("=====Getting data info========")
         info = self.data_infos[index]
 
         # print("Processing index: ", info)
@@ -244,17 +244,29 @@ class TUMTrafNuscDataset(Custom3DDataset):
 
 
             # For AI Hub data
-            print("Camera info: ", info["image"])
+            # print("Camera info: ", info["image"])
             data["image_paths"].append(prefix_camera + info["image"]["image_idx"] + ".jpg")
 
             P4 = info["calib"]["P2"].astype(np.float32)             
             R4 = info["calib"]["R0_rect"].astype(np.float32)        
             T4 = info["calib"]["Tr_velo_to_cam"].astype(np.float32) 
 
-            K33   = P4[:3, :3]                       
-            L2C34 = T4[:3, :4]                     
-            C2L34 = np.linalg.inv(T4)[:3, :4]       
-            L2I34 = (P4 @ R4 @ T4)[:3, :4]    
+            K3 = np.array([[1073.376117,      0.0, 940.460494],
+                      [     0.0, 1073.726956, 620.717418],
+                      [     0.0,      0.0,      1.0    ]], dtype=np.float32)
+
+            T4 = np.array([[-0.999971,  -0.00660817, -0.00390038,  0.5771051 ],
+                                [ 0.000308449, 0.473273  , -0.880916  , -4.23626  ],
+                                [ 0.00766718, -0.880891  , -0.473257  , -2.07651  ],
+                                [ 0.0      ,  0.0       ,  0.0       ,  1.0      ]],
+                                dtype=np.float32)
+            
+            R4 = np.eye(4, dtype=np.float32)  # R0_rect = I (ảnh đã rectified)
+            P4 = np.eye(4, dtype=np.float32); P4[:3, :3] = K3  # view-pad của K
+
+            L2C34 = T4[:3, :4]
+            C2L34 = np.linalg.inv(T4)[:3, :4]
+            L2I34 = (P4 @ R4 @ T4)[:3, :4]  
 
             I34 = np.concatenate([np.eye(3, dtype=np.float32),
                       np.zeros((3,1), dtype=np.float32)], axis=1)     
@@ -265,7 +277,7 @@ class TUMTrafNuscDataset(Custom3DDataset):
             data["lidar2camera"].append(L2C34)
 
             # camera intrinsics
-            data["camera_intrinsics"].append(K33)
+            data["camera_intrinsics"].append(K3)
 
             # lidar to image transform
             data["lidar2image"].append(L2I34)
@@ -424,7 +436,7 @@ class TUMTrafNuscDataset(Custom3DDataset):
         print("Start to convert detection format...")
         for index, det in enumerate(mmcv.track_iter_progress(results)):
             annos = []
-            ts = str(self.data_infos[index]["timestamp"])
+            ts = str(0)
             boxes = output_to_box_dict(det)
             boxes = filter_box_in_lidar_cs(boxes, mapped_class_names, self.eval_detection_configs)
             for i, box in enumerate(boxes):

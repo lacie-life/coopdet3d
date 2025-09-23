@@ -287,7 +287,7 @@ class LoadPointsFromMultiSweeps:
                     cloud arrays.
         """
 
-        print("Loading points from multi sweeps")
+        # print("Loading points from multi sweeps")
 
         points = results["points"]
 
