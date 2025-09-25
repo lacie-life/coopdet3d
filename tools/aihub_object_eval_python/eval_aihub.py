@@ -491,7 +491,7 @@ def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
             loc = np.concatenate(
                 [a["location"][:, [0, 1]] for a in dt_annos_part], 0)
             dims = np.concatenate(
-                [a["dimensions"][:, [0, 1]] for a in dt_annos_part], 0)
+                [a["dimensions"][:, [0, 2]] for a in dt_annos_part], 0)
             rots = np.concatenate([a["rotation_y"] for a in dt_annos_part], 0)
             dt_boxes = np.concatenate(
                 [loc, dims, rots[..., np.newaxis]], axis=1)

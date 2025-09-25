@@ -405,7 +405,7 @@ def main() -> None:
         lines = []
         for bb, sc, lb in zip(boxes, scores, labels):
             x, y, z, l, w, h, ry = map(float, bb)
-            z += h / 2  # to center
+            # z += h / 2  # to center
             cls = CLASS_NAMES[int(lb)] if int(lb) < len(CLASS_NAMES) else str(int(lb))
             lines.append(kitti_line(cls, x, y, z, l, w, h, ry, float(sc)))
 
