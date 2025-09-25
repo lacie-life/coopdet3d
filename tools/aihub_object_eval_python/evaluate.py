@@ -11,11 +11,19 @@ def _read_imageset_file(path):
         lines = f.readlines()
 
     # Only get the file names without extensions
+    count = 0
+    out_lines = []
     for i in range(len(lines)):
         lines[i] = lines[i].split('/')[-1]  # in case that path is included
         lines[i] = lines[i].split('.')[0]
         lines[i] = lines[i].strip()  # in case that \n is included
-    return lines
+
+        # if i < 1:
+        #     out_lines.append(lines[i])
+        #     count += 1
+
+        out_lines.append(lines[i])
+    return out_lines
 
 
 def evaluate(label_path,
@@ -47,7 +55,9 @@ def evaluate(label_path,
 
 if __name__ == '__main__':
     label_path = '/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v2/training/label_2/'
-    result_path = '/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v2/training/label_2/'
-    label_split_file = '/home/lacie/Github/coopdet3d/kitti_output/lidar_only_aihub_lidar_list/pred_list.txt'
-    print(evaluate(label_path, result_path, label_split_file, coco=False))
-''
+    result_path = '/home/lacie/Github/coopdet3d/kitti_output/lidar_only_aihub_lidar_list_2/'
+    label_split_file = '/home/lacie/Github/coopdet3d/kitti_output/lidar_only_aihub_lidar_list_2/pred_list.txt'
+    result, detail = evaluate(label_path, result_path, label_split_file, current_class=[0, 1, 2], coco=False, score_thresh=-1)
+    
+    print(result)
+    print(detail)

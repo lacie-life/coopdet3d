@@ -40,12 +40,16 @@ def clean_data(gt_anno, dt_anno, current_class, difficulty):
     num_dt = len(dt_anno["name"])
     num_valid_gt = 0
 
+    # print("current_cls_name", current_cls_name)
+    # print("num_gt", num_gt)
+    # print("num_dt", num_dt)
+
     for i in range(num_gt):
         bbox = gt_anno["bbox"][i]
         gt_name = gt_anno["name"][i].lower()
 
-        # print(bbox[3])
-        # print(bbox[1])
+        # print("gt_name", gt_name)
+        # print("bbox", bbox)
 
         height = bbox[3] - bbox[1]
         valid_class = -1
@@ -71,11 +75,11 @@ def clean_data(gt_anno, dt_anno, current_class, difficulty):
         # print(MAX_TRUNCATION[difficulty])
         # print(height)
         # print(MIN_HEIGHT[difficulty])
-        if ((gt_anno["occluded"][i] > MAX_OCCLUSION[difficulty])
-                or (gt_anno["truncated"][i] > MAX_TRUNCATION[difficulty])
-                or (height <= MIN_HEIGHT[difficulty])):
-            # if gt_anno["difficulty"][i] > difficulty or gt_anno["difficulty"][i] == -1:
-            ignore = True
+        # if ((gt_anno["occluded"][i] > MAX_OCCLUSION[difficulty])
+        #         or (gt_anno["truncated"][i] > MAX_TRUNCATION[difficulty])
+        #         or (height <= MIN_HEIGHT[difficulty])):
+        #     # if gt_anno["difficulty"][i] > difficulty or gt_anno["difficulty"][i] == -1:
+        #     ignore = True
         # print(ignore)
         if valid_class == 1 and not ignore:
             ignored_gt.append(0)
@@ -102,15 +106,16 @@ def clean_data(gt_anno, dt_anno, current_class, difficulty):
         
         height = abs(dt_anno["bbox"][i, 3] - dt_anno["bbox"][i, 1])
         
-        if height < MIN_HEIGHT[difficulty]:
-            ignored_dt.append(1)
-        elif valid_class == 1:
+        # if height < MIN_HEIGHT[difficulty]:
+        #     ignored_dt.append(1)
+        if valid_class == 1:
             ignored_dt.append(0)
         else:
             ignored_dt.append(-1)
             
     # print(ignored_gt)
     # print(ignored_dt)
+    # print("num_valid_gt", num_valid_gt)
  
     return num_valid_gt, ignored_gt, ignored_dt, dc_bboxes
 
@@ -159,30 +164,56 @@ def d3_box_overlap_kernel(boxes, qboxes, rinc, criterion=-1):
             if rinc[i, j] > 0:
                 # iw = (min(boxes[i, 1] + boxes[i, 4], qboxes[j, 1] +
                 #         qboxes[j, 4]) - max(boxes[i, 1], qboxes[j, 1]))
-                iw = (min(boxes[i, 2], qboxes[j, 2]) - max(
-                    boxes[i, 2] - boxes[i, 4], qboxes[j, 2] - qboxes[j, 5]))
+                # iw = (min(boxes[i, 2], qboxes[j, 2]) - max(
+                #     boxes[i, 2] - boxes[i, 4], qboxes[j, 2] - qboxes[j, 5]))
 
-                if iw > 0:
-                    area1 = boxes[i, 3] * boxes[i, 4] * boxes[i, 5]
+                # if iw > 0:
+                #     area1 = boxes[i, 3] * boxes[i, 4] * boxes[i, 5]
+                #     area2 = qboxes[j, 3] * qboxes[j, 4] * qboxes[j, 5]
+                #     inc = iw * rinc[i, j]
+                #     if criterion == -1:
+                #         ua = (area1 + area2 - inc)
+                #     elif criterion == 0:
+                #         ua = area1
+                #     elif criterion == 1:
+                #         ua = area2
+                #     else:
+                #         ua = inc
+                #     rinc[i, j] = inc / ua
+                # else:
+                #     rinc[i, j] = 0.0
+
+                top1 = boxes[i, 2] + 0.5 * boxes[i, 4]
+                bot1 = boxes[i, 2] - 0.5 * boxes[i, 4]
+                top2 = qboxes[j, 2] + 0.5 * qboxes[j, 4]   # dùng qboxes[:,4] cho h  
+                bot2 = qboxes[j, 2] - 0.5 * qboxes[j, 4]
+
+                ih = top1 if top1 < top2 else top2
+                bh = bot1 if bot1 > bot2 else bot2
+                ih = ih - bh
+
+                if ih > 0:
+                    area1 = boxes[i, 3] * boxes[i, 4] * boxes[i, 5]   # l*h*w
                     area2 = qboxes[j, 3] * qboxes[j, 4] * qboxes[j, 5]
-                    inc = iw * rinc[i, j]
+                    inter_vol = ih * rinc[i, j]                       # rinc = BEV(XY) intersection area
                     if criterion == -1:
-                        ua = (area1 + area2 - inc)
+                        ua = area1 + area2 - inter_vol
                     elif criterion == 0:
                         ua = area1
                     elif criterion == 1:
                         ua = area2
                     else:
-                        ua = inc
-                    rinc[i, j] = inc / ua
+                        ua = inter_vol
+                    rinc[i, j] = inter_vol / (ua + 1e-8)
                 else:
                     rinc[i, j] = 0.0
 
 
 def d3_box_overlap(boxes, qboxes, criterion=-1):
     rinc = rotate_iou_gpu_eval(boxes[:, [0, 1, 3, 5, 6]], # x , y,  z , l , h , w , yaw
-                               qboxes[:, [0, 1, 3, 4, 6]], 2) # x , y,  z , l , w , h , yaw
+                               qboxes[:, [0, 1, 3, 5, 6]], 2) # x , y,  z , l , w , h , yaw
 
+    # print("rinc", rinc)
     d3_box_overlap_kernel(boxes, qboxes, rinc, criterion)
     return rinc
 
@@ -467,24 +498,36 @@ def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
             overlap_part = bev_box_overlap(gt_boxes, dt_boxes).astype(
                 np.float64)
         elif metric == 2:
+            # print("============== 3d box overlap ================")
             loc = np.concatenate([a["location"] for a in gt_annos_part], 0)
             dims = np.concatenate([a["dimensions"] for a in gt_annos_part], 0)
+            # dims = dims[:, [2, 0, 1]]   # (h,w,l) -> (l,h,w)
             rots = np.concatenate([a["rotation_y"] for a in gt_annos_part], 0)
             gt_boxes = np.concatenate(
                 [loc, dims, rots[..., np.newaxis]], axis=1)
+            
             loc = np.concatenate([a["location"] for a in dt_annos_part], 0)
             dims = np.concatenate([a["dimensions"] for a in dt_annos_part], 0)
+            # dims = dims[:, [2, 0, 1]]   # (h,w,l) -> (l,h,w)
             rots = np.concatenate([a["rotation_y"] for a in dt_annos_part], 0)
             dt_boxes = np.concatenate(
                 [loc, dims, rots[..., np.newaxis]], axis=1)
+            
             overlap_part = d3_box_overlap(gt_boxes, dt_boxes).astype(
                 np.float64)
+            
+            # print("gt_boxes", gt_boxes)
+            # print("dt_boxes", dt_boxes)
+            # print("overlap_part", overlap_part)
         else:
             raise ValueError("unknown metric")
+        
         parted_overlaps.append(overlap_part)
         example_idx += num_part
+    
     overlaps = []
     example_idx = 0
+    
     for j, num_part in enumerate(split_parts):
         gt_annos_part = gt_annos[example_idx:example_idx + num_part]
         dt_annos_part = dt_annos[example_idx:example_idx + num_part]
@@ -495,6 +538,10 @@ def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
             overlaps.append(
                 parted_overlaps[j][gt_num_idx:gt_num_idx + gt_box_num,
                                    dt_num_idx:dt_num_idx + dt_box_num])
+            
+            # overlaps.append(
+            # parted_overlaps[j][dt_num_idx:dt_num_idx + dt_box_num,
+            #                 gt_num_idx:gt_num_idx + gt_box_num])  # for debug
             gt_num_idx += gt_box_num
             dt_num_idx += dt_box_num
         example_idx += num_part
@@ -525,12 +572,15 @@ def _prepare_data(gt_annos, dt_annos, current_class, difficulty):
         total_dc_num.append(dc_bboxes.shape[0])
         dontcares.append(dc_bboxes)
         total_num_valid_gt += num_valid_gt
+        
         gt_datas = np.concatenate(
             [gt_annos[i]["bbox"], gt_annos[i]["alpha"][..., np.newaxis]], 1)
+        
         dt_datas = np.concatenate([
             dt_annos[i]["bbox"], dt_annos[i]["alpha"][..., np.newaxis],
             dt_annos[i]["score"][..., np.newaxis]
         ], 1)
+
         gt_datas_list.append(gt_datas)
         dt_datas_list.append(dt_datas)
     total_dc_num = np.stack(total_dc_num, axis=0)

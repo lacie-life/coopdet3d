@@ -353,9 +353,9 @@ def get_label_annos(label_folder, image_ids=None):
         # Remove \n in case that is included in image_idx
         image_idx = image_idx.strip()
         label_filename = label_folder / (image_idx + '.txt')
-        print("Processing label file: ", label_filename) 
+        # print("Processing label file: ", label_filename) 
         annos.append(get_label_anno(label_filename))
-        print(get_label_anno(label_filename))
+        # print(get_label_anno(label_filename))
 
     return annos
 
