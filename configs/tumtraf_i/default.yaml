@@ -2,7 +2,7 @@ dataset_type: TUMTrafNuscDataset
 #dataset_root: data/tumtraf_v2x_cooperative_perception_dataset_processed/
 # dataset_root: data/tumtraf_i_v2_lidar_3cls_processed/
 # dataset_root: data/tumtraf_i_8_cls_v10_processed/
-dataset_root: data/AIHub_KITTI_format_fusion_refined_v2/ # For AI Hub data
+dataset_root: data/AIHub_KITTI_format_fusion_refined_v4/ # For AI Hub data
 # dataset_root: data/tumtraf_i_8_cls_v11_viz_processed/
 # dataset_root: data/tumtraf_i_v2_fusion_3cls_processed/
 # dataset_root: data/tumtraf_i_mono_processed/
@@ -51,7 +51,10 @@ augment3d:
 
 object_classes: # For AI Hub data
   - CAR
-  - WHEELER
+  - BUS
+  - TRUCK
+  - SPECIAL_VEHICLE
+  - TWO_WHEELER
   - PEDESTRIAN
 
 input_modality:
@@ -107,7 +110,10 @@ train_pipeline:
           # # OTHER: 5
           # BICYCLE: 0
           CAR: 0 # For AI Hub data
-          WHEELER: 0
+          BUS: 0
+          TRUCK: 0
+          SPECIAL_VEHICLE: 0
+          TWO_WHEELER: 0
           PEDESTRIAN: 0
   
       classes: ${object_classes}
@@ -135,7 +141,10 @@ train_pipeline:
         # #EMERGENCY_VEHICLE: 15
  
         CAR: 0 # For AI Hub data 
-        WHEELER: 0
+        BUS: 0
+        TRUCK: 0
+        SPECIAL_VEHICLE: 0
+        TWO_WHEELER: 0
         PEDESTRIAN: 0
 
       points_loader:
@@ -372,6 +381,6 @@ data:
     box_type_3d: LiDAR
 
 evaluation:
-  interval: 50
+  interval: 20
   pipeline: ${test_pipeline}
  

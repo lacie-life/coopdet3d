@@ -13,7 +13,7 @@ from torchpack.utils.config import configs
 from tqdm import tqdm
 
 from mmdet3d.core import LiDARInstance3DBoxes
-from mmdet3d.core.utils import visualize_camera, visualize_camera_combo, visualize_lidar, visualize_lidar_combo, visualize_map
+from mmdet3d.core.utils import visualize_camera, visualize_camera_combo, visualize_lidar, visualize_lidar_combo, visualize_map, visualize_lidar_combo_aihub
 from mmdet3d.datasets import build_dataloader, build_dataset
 from mmdet3d.models import build_model
 
@@ -79,10 +79,12 @@ def main() -> None:
         )
         model.eval()
 
-    obj_class_gt = [0] * 8
-    obj_class_pred = [0] * 8
+    obj_class_gt = [0] * 6
+    obj_class_pred = [0] * 6
 
-    data_prefix = "/home/lacie/Github/coopdet3d/data/tumtraf_i_8_cls_v11_viz_processed/val/point_clouds/s110_lidar_ouster_south_and_north_registered"
+    # data_prefix = "/home/lacie/Github/coopdet3d/data/tumtraf_i_8_cls_v11_viz_processed/val/point_clouds/s110_lidar_ouster_south_and_north_registered"
+    data_prefix = "/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v4/training/velodyne/"
+
 
     for data in tqdm(dataflow):
         metas = data["metas"].data[0][0]
@@ -92,14 +94,16 @@ def main() -> None:
         print("Save name:", name)
 
         pc_range = data["pc_range"].data[0][0][0].numpy().tolist()
-        print("visual pc_range", pc_range)
+        
+        # print("visual pc_range", pc_range)
 
-        if pc_range[1] == -60.0:
-            pc_range = [10.0, -50.0, -10.0, 80.0, 25.0, -2.0]
-        elif pc_range[1] == 0.0:
-            pc_range = [-25.0, -30.0, -10.0, 110.0, 80.0, -2.0]
+        # Commnet for AI Hub data
+        # if pc_range[1] == -60.0:
+        #     pc_range = [10.0, -50.0, -10.0, 80.0, 25.0, -2.0]
+        # elif pc_range[1] == 0.0:
+        #     pc_range = [-25.0, -30.0, -10.0, 110.0, 80.0, -2.0]
 
-        print("visual pc_range", pc_range)
+        # print("visual pc_range", pc_range)
 
         if args.mode == "pred" or args.mode == "combo":
             with torch.inference_mode():
@@ -203,10 +207,10 @@ def main() -> None:
                     )
 
         # lidar = data["points"].data[0][0].numpy()
-        lidar = np.fromfile(os.path.join(data_prefix, f"{name}.bin"), dtype=np.float32).reshape(-1, 5)
+        lidar = np.fromfile(os.path.join(data_prefix, f"{name}.bin"), dtype=np.float32).reshape(-1, 4)
 
-        print("Lidar shape: ", lidar.shape)
-        print("Lidar range: ", lidar[:, 0].min(), lidar[:, 0].max(), lidar[:, 1].min(), lidar[:, 1].max(), lidar[:, 2].min(), lidar[:, 2].max())
+        # print("Lidar shape: ", lidar.shape)
+        # print("Lidar range: ", lidar[:, 0].min(), lidar[:, 0].max(), lidar[:, 1].min(), lidar[:, 1].max(), lidar[:, 2].min(), lidar[:, 2].max())
 
         assert len(pc_range) == 6, "pc_range must have 6 elements"
 
@@ -219,8 +223,8 @@ def main() -> None:
         lidar = lidar[indices]
 
         if args.mode == "combo":
-            obj_class_gt_ , obj_class_pred_ = visualize_lidar_combo(
-                os.path.join(args.out_dir, "fused-lidar", f"{name}.png"),
+            obj_class_gt_ , obj_class_pred_ = visualize_lidar_combo_aihub(
+                os.path.join(args.out_dir, "fused-lidar", f"{name}"),
                 lidar,
                 gtbboxes=gtbboxes,
                 bboxes=bboxes,
@@ -238,8 +242,6 @@ def main() -> None:
             obj_class_gt[3] += obj_class_gt_[3]
             obj_class_gt[4] += obj_class_gt_[4]
             obj_class_gt[5] += obj_class_gt_[5]
-            obj_class_gt[6] += obj_class_gt_[6]
-            obj_class_gt[7] += obj_class_gt_[7]
 
             obj_class_pred[0] += obj_class_pred_[0]
             obj_class_pred[1] += obj_class_pred_[1]
@@ -247,8 +249,6 @@ def main() -> None:
             obj_class_pred[3] += obj_class_pred_[3]
             obj_class_pred[4] += obj_class_pred_[4]
             obj_class_pred[5] += obj_class_pred_[5]
-            obj_class_pred[6] += obj_class_pred_[6]
-            obj_class_pred[7] += obj_class_pred_[7]
             
         else:
             visualize_lidar(

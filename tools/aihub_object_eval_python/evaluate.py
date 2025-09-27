@@ -54,10 +54,10 @@ def evaluate(label_path,
 
 
 if __name__ == '__main__':
-    label_path = '/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v2/training/label_2/'
-    result_path = '/home/lacie/Github/coopdet3d/kitti_output/lidar_only_aihub_lidar_list/'
-    label_split_file = '/home/lacie/Github/coopdet3d/kitti_output/lidar_only_aihub_lidar_list/pred_list.txt'
-    result, detail = evaluate(label_path, result_path, label_split_file, current_class=[0, 1, 2], coco=False, score_thresh=-1)
-    
+    label_path = '/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v4/training/label_2/'
+    result_path = '/home/lacie/Github/coopdet3d/kitti_output/lidar_only_aihub_6cls_2/'
+    label_split_file = '/home/lacie/Github/coopdet3d/kitti_output/lidar_only_aihub_6cls_2/pred_list.txt'
+    result, detail = evaluate(label_path, result_path, label_split_file, current_class=[0, 1, 2, 3, 4, 5], coco=False, score_thresh=-1)
+
     print(result)
     print(detail)

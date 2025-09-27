@@ -41,3 +41,5 @@ python tum-traffic-dataset-dev-kit/src/eval/evaluation_8_cls.py --camera_id s110
 torchpack dist-run -np 1 python tools/train.py /home/lacie/Github/coopdet3d/configs/tumtraf_i/det/transfusion/secfpn/camera+lidar/swint_v0p075/voxelnet_convfuser.yaml  --load_from /home/lacie/Github/coopdet3d/runs/lidar_8_cls_v10/epoch_20.pth  --run-dir runs/run_bevfusion_fusion_1
 
 torchpack dist-run -np 1 python tools/inference_to_kitti.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml  --checkpoint /home/lacie/Github/coopdet3d/runs/aihub_lidar_only/epoch_20.pth  --split val --out-dir kitti_output/lidar_only_aihub
+
+torchpack dist-run -np 1 python tools/visualize.py ./configs/tumtraf_i/det/transfusion/secfpn/lidar/pointpillars.yaml --checkpoint /home/lacie/Github/coopdet3d/runs/aihub_lidar_only_6cls/epoch_20.pth --split val --mode pred --out-dir viz_output/viz_aihub_lidar_only

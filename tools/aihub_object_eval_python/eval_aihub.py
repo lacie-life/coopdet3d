@@ -30,10 +30,17 @@ def get_thresholds(scores: np.ndarray, num_gt, num_sample_pts=41):
 
 
 def clean_data(gt_anno, dt_anno, current_class, difficulty):
-    CLASS_NAMES = ['CAR', 'WHEELER', 'PEDESTRIAN']
-    MIN_HEIGHT = [0, 0, 0]
-    MAX_OCCLUSION = [2, 2, 2]
-    MAX_TRUNCATION = [1, 1, 1]
+    # CLASS_NAMES = ['CAR', 'WHEELER', 'PEDESTRIAN']
+    # MIN_HEIGHT = [0, 0, 0]
+    # MAX_OCCLUSION = [2, 2, 2]
+    # MAX_TRUNCATION = [1, 1, 1]
+
+    # For AI Hub data
+    CLASS_NAMES = ['CAR', 'BUS', 'TRUCK', 'SPECIAL_VEHICLE', 'PEDESTRIAN', 'TWO_WHEELER']
+    MIN_HEIGHT = [0, 0, 0, 0, 0, 0]
+    MAX_OCCLUSION = [2, 2, 2, 2, 2, 2]
+    MAX_TRUNCATION = [1, 1, 1, 1, 1, 1]
+
     dc_bboxes, ignored_gt, ignored_dt = [], [], []
     current_cls_name = CLASS_NAMES[current_class].lower()
     num_gt = len(gt_anno["name"])
@@ -790,12 +797,25 @@ def do_coco_style_eval(gt_annos, dt_annos, current_classes, overlap_ranges,
 
 
 def get_official_eval_result(gt_annos, dt_annos, current_classes, PR_detail_dict=None):
-    overlap_0_7 = np.array([ [0.7, 0.5, 0.5, 0.7, 0.5, 0.7], 
-                             [0.7, 0.5, 0.5, 0.7, 0.5, 0.7],
-                             [0.7, 0.5, 0.5, 0.7, 0.5, 0.7]])
-    overlap_0_5 = np.array([ [0.7, 0.5, 0.5, 0.7, 0.5, 0.5], 
-                             [0.5, 0.25, 0.25, 0.5, 0.25, 0.5],
-                             [0.5, 0.25, 0.25, 0.5, 0.25, 0.5]])
+    # overlap_0_7 = np.array([ [0.7, 0.5, 0.5, 0.7, 0.5, 0.7], 
+    #                          [0.7, 0.5, 0.5, 0.7, 0.5, 0.7],
+    #                          [0.7, 0.5, 0.5, 0.7, 0.5, 0.7]])
+    # overlap_0_5 = np.array([ [0.7, 0.5, 0.5, 0.7, 0.5, 0.5], 
+    #                          [0.5, 0.25, 0.25, 0.5, 0.25, 0.5],
+    #                          [0.5, 0.25, 0.25, 0.5, 0.25, 0.5]])
+    
+    # For AI Hub dataset
+    overlap_0_7 = np.array([
+                            [0.7, 0.7, 0.7, 0.7, 0.5, 0.5],
+                            [0.7, 0.7, 0.7, 0.7, 0.5, 0.5],
+                            [0.7, 0.7, 0.7, 0.7, 0.5, 0.5],
+                            ], dtype=np.float32)
+
+    overlap_0_5 = np.array([
+                            [0.5, 0.5, 0.5, 0.5, 0.25, 0.25],
+                            [0.5, 0.5, 0.5, 0.5, 0.25, 0.25],
+                            [0.5, 0.5, 0.5, 0.5, 0.25, 0.25],
+                        ], dtype=np.float32)
     
     # overlap_0_7 = np.array([ [0.1, 0.1, 0.1, 0.1, 0.1, 0.1], 
     #                          [0.1, 0.1, 0.1, 0.1, 0.1, 0.1],
@@ -805,11 +825,22 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, PR_detail_dict
     #                          [0.1, 0.1, 0.1, 0.1, 0.1, 0.1]])
     
     min_overlaps = np.stack([overlap_0_7, overlap_0_5], axis=0)  # [2, 3, 5]
+    # class_to_name = {
+    #     0: 'CAR',
+    #     1: 'WHEELER',
+    #     2: 'PEDESTRIAN',
+    # }
+
+    # For AI Hub dataset
     class_to_name = {
         0: 'CAR',
-        1: 'WHEELER',
-        2: 'PEDESTRIAN',
+        1: 'BUS',
+        2: 'TRUCK',
+        3: 'SPECIAL_VEHICLE',
+        4: 'TWO_WHEELER',
+        5: 'PEDESTRIAN',
     }
+
     name_to_class = {v: n for n, v in class_to_name.items()}
     if not isinstance(current_classes, (list, tuple)):
         current_classes = [current_classes]
@@ -820,6 +851,8 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, PR_detail_dict
         else:
             current_classes_int.append(curcls)
     current_classes = current_classes_int
+    
+    
     min_overlaps = min_overlaps[:, :, current_classes]
 
     print("=======================================================")

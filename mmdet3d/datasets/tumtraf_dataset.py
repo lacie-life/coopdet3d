@@ -22,7 +22,8 @@ from .custom_3d import Custom3DDataset
 @DATASETS.register_module()
 class TUMTrafNuscDataset(Custom3DDataset):
     # CLASSES = ('CAR', 'TRAILER', 'TRUCK', 'VAN', 'PEDESTRIAN', 'BUS', 'MOTORCYCLE', 'OTHER', 'BICYCLE', 'EMERGENCY_VEHICLE')
-    CLASSES = ('CAR', 'WHEELER', 'PEDESTRIAN') # For AI Hub data
+    CLASSES = ('CAR', 'BUS', 'TRUCK', 'SPECIAL_VEHICLE', 'TWO_WHEELER', 'PEDESTRIAN') # For AI Hub data
+
 
     # https://github.com/nutonomy/nuscenes-devkit/blob/57889ff20678577025326cfc24e57424a829be0a/python-sdk/nuscenes/eval/detection/evaluate.py#L222 # noqa
     ErrNameMapping = {
@@ -48,8 +49,11 @@ class TUMTrafNuscDataset(Custom3DDataset):
 
     cls_range = { # For AI Hub data
         "CAR": 50,
+        "BUS": 50,
+        "TRUCK": 50,
+        'SPECIAL_VEHICLE': 50,
         "PEDESTRIAN": 40,
-        "WHEELER": 40
+        "TWO_WHEELER": 40,
     }
 
     dist_fcn = "center_distance"
@@ -190,8 +194,8 @@ class TUMTrafNuscDataset(Custom3DDataset):
         # )
 
         # For AI Hub data
-        prefix_lidar = "/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v2/training/velodyne/"
-        prefix_camera = "/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v2/training/image_2/"
+        prefix_lidar = "/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v4/training/velodyne/"
+        prefix_camera = "/home/lacie/Github/coopdet3d/data/AIHub_KITTI_format_fusion_refined_v4/training/image_2/"
         data = dict(
             lidar_path = prefix_lidar + info["point_cloud"]["lidar_idx"] + ".bin",
             sweeps = [], # Dummy value,
@@ -320,6 +324,8 @@ class TUMTrafNuscDataset(Custom3DDataset):
                 - gt_names (list[str]): Class names of ground truths.
         """
         info = self.data_infos[index]
+
+        # print("Getting annotation info from labels: ", info.get("annos", None))
         
         # For AI Hub data
         annos = info["annos"]
@@ -355,8 +361,6 @@ class TUMTrafNuscDataset(Custom3DDataset):
                 ]
             )
         
-        gt_bboxes_3d = np.array(gt_bboxes_3d, dtype=np.float32)
-        
         # print(gt_bboxes_3d)
         
         gt_labels_3d = []
@@ -369,9 +373,16 @@ class TUMTrafNuscDataset(Custom3DDataset):
 
         gt_labels_3d = np.array(gt_labels_3d)
 
+        # print("GT boxes: ", gt_bboxes_3d)
+
+        box_dim = 9  
+        gt = np.asarray(gt_bboxes_3d, dtype=np.float32)
+        if gt.size == 0:
+            gt = np.zeros((0, box_dim), dtype=np.float32)
+
         gt_bboxes_3d = LiDARInstance3DBoxes(
-            gt_bboxes_3d, box_dim=gt_bboxes_3d.shape[-1], origin=(0.5, 0.5, 0)
-        ).convert_to(self.box_mode_3d)
+            gt, box_dim=gt.shape[-1], origin=(0.5, 0.5, 0.5)
+        )
 
         # if self.with_velocity:
         #     gt_velocity = info["gt_velocity"][mask]
@@ -559,18 +570,18 @@ class TUMTrafNuscDataset(Custom3DDataset):
 
         all_annotations = {}
 
-        class_map = { # For AI Hub data
-            'CAR': 'CAR',
-            'PEDESTRIAN': 'PEDESTRIAN',
-            'TRUCK': 'CAR',
-            'BUS': 'CAR',
-            'TRAILER': 'CAR',
-            'BICYCLE': 'WHEELER',
-            'MOTORCYCLE': 'WHEELER',
-            'VAN': 'CAR',
-            'EMERGENCY_VEHICLE': 'CAR',
-            'OTHER': 'CAR'
-        }
+        # class_map = { # For AI Hub data
+        #     'CAR': 'CAR',
+        #     'PEDESTRIAN': 'PEDESTRIAN',
+        #     'TRUCK': 'CAR',
+        #     'BUS': 'CAR',
+        #     'TRAILER': 'CAR',
+        #     'BICYCLE': 'WHEELER',
+        #     'MOTORCYCLE': 'WHEELER',
+        #     'VAN': 'CAR',
+        #     'EMERGENCY_VEHICLE': 'CAR',
+        #     'OTHER': 'CAR'
+        # }
 
         for i, info in enumerate(self.data_infos):
             json1_file = open(info["lidar_anno_path"])
@@ -612,8 +623,8 @@ class TUMTrafNuscDataset(Custom3DDataset):
                     "rotation": yaw,
                     "velocity": [0, 0],
                     "num_pts": num_lidar_pts,
-                    "detection_name": class_map[object_data['type']], # For AI Hub data
-                    # "detection_name": object_data['type'],
+                    # "detection_name": class_map[object_data['type']], # For AI Hub data
+                    "detection_name": object_data['type'],
                     "detection_score": -1.0,  # GT samples do not have a score.
                 })
 

@@ -43,7 +43,8 @@ class TransFusionHead(nn.Module):
         auxiliary=True,
         in_channels=128 * 3,
         hidden_channel=128,
-        num_classes=4,
+        num_classes=6,  # for AI Hub data
+        # num_classes=4,
         # config for Transformer
         num_decoder_layers=3,
         num_heads=8,
@@ -258,14 +259,23 @@ class TransFusionHead(nn.Module):
             ] = F.max_pool2d(heatmap[:, 9], kernel_size=1, stride=1, padding=0)
         
         elif self.test_cfg["dataset"] == "tumtraf_nusc":  # for tumtraf_i with 9 classes#
+            # local_max[
+            #     :,
+            #     6,
+            # ] = F.max_pool2d(heatmap[:, 6], kernel_size=1, stride=1, padding=0)
+            # local_max[
+            #     :,
+            #     7,
+            # ] = F.max_pool2d(heatmap[:, 7], kernel_size=1, stride=1, padding=0)
+
+            local_max[ # For AI Hub data Pedestrain and Two wheeler   6 classes  
+                :,
+                4,
+            ] = F.max_pool2d(heatmap[:, 4], kernel_size=1, stride=1, padding=0)
             local_max[
                 :,
-                6,
-            ] = F.max_pool2d(heatmap[:, 6], kernel_size=1, stride=1, padding=0)
-            local_max[
-                :,
-                7,
-            ] = F.max_pool2d(heatmap[:, 7], kernel_size=1, stride=1, padding=0)
+                5,
+            ] = F.max_pool2d(heatmap[:, 5], kernel_size=1, stride=1, padding=0)
 
             # local_max[
             #     :,
@@ -587,8 +597,13 @@ class TransFusionHead(nn.Module):
             self.num_classes, feature_map_size[1], feature_map_size[0]
         )
         for idx in range(len(gt_bboxes_3d)):
-            width = gt_bboxes_3d[idx][3]
-            length = gt_bboxes_3d[idx][4]
+            # width = gt_bboxes_3d[idx][3]
+            # length = gt_bboxes_3d[idx][4]
+
+            # For AI Hub data
+            length = gt_bboxes_3d[idx][3]
+            width = gt_bboxes_3d[idx][4]
+
             width = width / voxel_size[0] / self.train_cfg["out_size_factor"]
             length = length / voxel_size[1] / self.train_cfg["out_size_factor"]
             if width > 0 and length > 0:
@@ -799,27 +814,51 @@ class TransFusionHead(nn.Module):
             )
 
             if self.test_cfg["dataset"] == "nuScenes" or self.test_cfg["dataset"] == "tumtraf_nusc":
+                # self.tasks = [
+                #     dict(
+                #         num_class=1,
+                #         class_names=[],
+                #         # indices=[0, 1, 2, 3, 4, 5, 6, 7],
+                #         indices=[0],
+                #         radius=-1,
+                #     ),
+                #     dict(
+                #         num_class=1,
+                #         class_names=["PEDESTRIAN"],
+                #         indices=[2],
+                #         radius=0.175,
+                #     ),
+                #     dict(
+                #         num_class=1,
+                #         class_names=["WHEELER"],
+                #         indices=[1],
+                #         radius=0.175,
+                #     ),
+                # ]
+
+                # For AI Hub data with 6 classes
                 self.tasks = [
                     dict(
-                        num_class=1,
+                        num_class=4,
                         class_names=[],
-                        # indices=[0, 1, 2, 3, 4, 5, 6, 7],
-                        indices=[0],
+                        indices=[0, 1, 2, 3],
+                        # indices=[0],
                         radius=-1,
                     ),
                     dict(
                         num_class=1,
-                        class_names=["PEDESTRIAN"],
-                        indices=[2],
+                        class_names=["TWO_WHEELER"],
+                        indices=[4],
                         radius=0.175,
                     ),
                     dict(
                         num_class=1,
-                        class_names=["WHEELER"],
-                        indices=[1],
+                        class_names=["PEDESTRIAN"],
+                        indices=[5],
                         radius=0.175,
                     ),
                 ]
+
                 # self.tasks = [
                 #     dict(
                 #         num_class=8,
