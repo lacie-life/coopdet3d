@@ -12,17 +12,27 @@ from ..bbox import LiDARInstance3DBoxes
 __all__ = ["visualize_camera", "visualize_camera_combo", "visualize_lidar", "visualize_lidar_combo", "visualize_lidar_two", "visualize_lidar_two_combo", "visualize_map", "visualize_lidar_combo_aihub"]
 
 
+# OBJECT_PALETTE = {
+#     "CAR": (0, 255, 0),
+#     "TRAILER": (128, 128, 128),
+#     "TRUCK": (128, 255, 0),
+#     "VAN": (255, 128, 0),
+#     "PEDESTRIAN": (255, 0, 255),
+#     "BUS": (255, 0, 128),
+#     "MOTORCYCLE": (128, 0, 255),
+#     "OTHER": (199, 199, 199),
+#     "BICYCLE": (0, 128, 255),
+#     "EMERGENCY_VEHICLE": (0, 255, 0)
+# }
+
+# For AI Hub data
 OBJECT_PALETTE = {
     "CAR": (0, 255, 0),
-    "TRAILER": (128, 128, 128),
+    "BUS": (128, 128, 128),
     "TRUCK": (128, 255, 0),
-    "VAN": (255, 128, 0),
+    "SPECIAL_VEHICLE": (255, 128, 0),
     "PEDESTRIAN": (255, 0, 255),
-    "BUS": (255, 0, 128),
-    "MOTORCYCLE": (128, 0, 255),
-    "OTHER": (199, 199, 199),
-    "BICYCLE": (0, 128, 255),
-    "EMERGENCY_VEHICLE": (0, 255, 0)
+    "TWO_WHEELER": (255, 0, 128),
 }
 
 # OBJECT_PALETTE_LIDAR = {
@@ -769,6 +779,7 @@ def visualize_lidar_combo_aihub(
 
     # ======= Plot predicted boxes =======
     if bboxes is not None and len(bboxes) > 0:
+        
         pd_poly, pd_front, _ = _lidar_boxes_to_xy_poly_and_front(bboxes)
         for i in range(pd_poly.shape[0]):
             name = classes[labels[i]] if (classes is not None and labels is not None) else "PRED"

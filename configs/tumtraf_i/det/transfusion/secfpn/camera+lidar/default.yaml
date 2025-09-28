@@ -61,4 +61,4 @@ optimizer:
   lr: 2.0e-4
 
 # Originally 6
-max_epochs: 8
+max_epochs: 15

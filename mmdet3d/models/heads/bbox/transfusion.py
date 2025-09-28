@@ -467,6 +467,36 @@ class TransFusionHead(nn.Module):
                 - torch.Tensor: iou target. [1, num_proposals]
                 - int: number of positive proposals
         """
+
+
+        # ===== DEBUG START =====
+        # def _stat(name, t):
+        #     if t is None:
+        #         print(f"[DBG] {name}: None"); return
+        #     print(f"[DBG] {name}: shape={tuple(t.shape)}, "
+        #         f"min={t.min().item():.4f}, "
+        #         f"max={t.max().item():.4f}, "
+        #         f"mean={t.mean().item():.4f}, "
+        #         f"nan={(t != t).any().item()}, "
+        #         f"inf={torch.isinf(t).any().item()}")
+
+        # print("\n[DBG] ===== get_targets_single(batch_idx=", batch_idx, ") =====")
+
+        # # Kích thước lưới feature
+        # grid_size = torch.tensor(self.train_cfg["grid_size"])  # [X,Y,Z] theo voxel
+        # feat_size = (grid_size[:2] // self.train_cfg["out_size_factor"]).tolist()
+        # print("[DBG] feature_map_size (W,H):", feat_size)
+
+        # # pc_range train-time
+        # _pc = torch.tensor(pc_range).detach().to(torch.float32).view(-1)
+        # print("[DBG] pc_range train:", _pc.tolist())
+
+        # # Nhãn GT
+        # print("[DBG] gt_labels_3d unique:", gt_labels_3d.unique().tolist(), "num_gt:", len(gt_labels_3d))
+
+        # ===== DEBUG END =====
+
+
         num_proposals = preds_dict["center"].shape[-1]
 
         # get pred boxes, carefully ! donot change the network outputs
@@ -480,9 +510,39 @@ class TransFusionHead(nn.Module):
         else:
             vel = None
 
+        # ===== DEBUG START =====
+        # _stat("score(preds_dict['heatmap'])", score)
+        # _stat("center(preds_dict['center'])", center)
+        # _stat("height", height)
+        # _stat("dim", dim)
+        # _stat("rot", rot)
+        # if vel is not None: _stat("vel", vel)
+        # print("[DBG] num_proposals (from center last dim):", center.shape[-1])
+        # ===== DEBUG END =====
+
         boxes_dict = self.bbox_coder.decode(
             score, rot, dim, center, height, vel, pc_range
         )  # decode the prediction to real world metric bbox
+
+        # ===== DEBUG START =====
+        # if isinstance(boxes_dict, (list, tuple)):  # tuỳ coder
+        #     _bd = boxes_dict[0]
+        # else:
+        #     _bd = boxes_dict
+
+        # bboxes_tensor = _bd["bboxes"]  # [N, 7/9]
+        # print("[DBG] decode -> bboxes shape:", tuple(bboxes_tensor.shape))
+        # if bboxes_tensor.numel() > 0:
+        #     _stat("decoded.x", bboxes_tensor[:, 0])
+        #     _stat("decoded.y", bboxes_tensor[:, 1])
+        #     _stat("decoded.z", bboxes_tensor[:, 2])
+        #     _stat("decoded.l", bboxes_tensor[:, 3])
+        #     _stat("decoded.w", bboxes_tensor[:, 4])
+        #     _stat("decoded.h", bboxes_tensor[:, 5])
+        #     _stat("decoded.yaw", bboxes_tensor[:, 6])
+        # else:
+        #     print("[DBG] decode returned EMPTY bboxes!")
+        # ===== DEBUG END =====
 
         bboxes_tensor = boxes_dict[0]["bboxes"]
         
@@ -596,7 +656,14 @@ class TransFusionHead(nn.Module):
         heatmap = gt_bboxes_3d.new_zeros(
             self.num_classes, feature_map_size[1], feature_map_size[0]
         )
+
+        # ===== DEBUG START =====
+        # drop_out = 0
+        # inside = 0
+        # ===== DEBUG END =====
+
         for idx in range(len(gt_bboxes_3d)):
+
             # width = gt_bboxes_3d[idx][3]
             # length = gt_bboxes_3d[idx][4]
 
@@ -636,6 +703,21 @@ class TransFusionHead(nn.Module):
                     heatmap[gt_labels_3d[idx]], center_int[[1, 0]], radius
                 )
 
+                # ===== DEBUG START =====
+                # kiểm tra GT rơi vào/ra ngoài feature map
+                # if not (0 <= coor_x < feature_map_size[0] and 0 <= coor_y < feature_map_size[1]):
+                #     drop_out += 1
+                # else:
+                #     inside += 1
+
+                # if idx < 3:  # in 3 GT đầu
+                #     print(f"[DBG] GT{idx}: (x,y)=({x:.2f},{y:.2f}) -> (coor_x,coor_y)=({coor_x:.2f},{coor_y:.2f}), "
+                #         f"rad={radius}, cls={int(gt_labels_3d[idx])}")
+                # ===== DEBUG END =====
+
+    #     print(f"[DBG] heatmap target: inside={inside}, dropped(out of map)={drop_out}, "
+    #   f"heatmap max={float(heatmap.max())}")
+        
         mean_iou = ious[pos_inds].sum() / max(len(pos_inds), 1)
         return (
             labels[None],
@@ -785,23 +867,61 @@ class TransFusionHead(nn.Module):
         """
         rets = []
         for layer_id, preds_dict in enumerate(preds_dicts):
+
+            # print("Decoding bboxes from layer %d" % layer_id)
+            # print("pc_range: " , pc_range)
+            # print("Number of proposals: ", self.num_proposals)
+            # print("NUM_CLASSES: ", self.num_classes)
+            # print("Heatmap stats: min %.4f, max %.4f" % (preds_dict[0]["heatmap"].min().item(), preds_dict[0]["heatmap"].max().item()))
+            # print("Query heatmap score stats: min %.4f, max %.4f" % (preds_dict[0]["query_heatmap_score"].min().item(), preds_dict[0]["query_heatmap_score"].max().item()))
+            # print("Rot stats: min %.4f, max %.4f" % (preds_dict[0]["rot"].min().item(), preds_dict[0]["rot"].max().item()))
+            # print("Center stats: min %.4f, max %.4f" % (preds_dict[0]["center"].min().item(), preds_dict[0]["center"].max().item()))
+            # print("Dim stats: min %.4f, max %.4f" % (preds_dict[0]["dim"].min().item(), preds_dict[0]["dim"].max().item()))
+            # print("Height stats: min %.4f, max %.4f" % (preds_dict[0]["height"].min().item(), preds_dict[0]["height"].max().item()))
+
+            # if 'center' in preds_dict[0]:
+            #     print("center stats: min %.4f, max %.4f" % (preds_dict[0]['center'].min().item(), preds_dict[0]['center'].max().item()))
+            #     preds_dict[0]['center'] = torch.zeros_like(preds_dict[0]['center'])
+            #     print("After set to zero, center stats: min %.4f, max %.4f" % (preds_dict[0]['center'].min().item(), preds_dict[0]['center'].max().item()))
+
             batch_size = preds_dict[0]["heatmap"].shape[0]
             batch_score = preds_dict[0]["heatmap"][..., -self.num_proposals :].sigmoid()
+            
             # if self.loss_iou.loss_weight != 0:
             #    batch_score = torch.sqrt(batch_score * preds_dict[0]['iou'][..., -self.num_proposals:].sigmoid())
+            
+            
+            # print("self.num_classes", self.num_classes)
+            # print("self.query_labels", self.query_labels)
+            # print("batch_score", batch_score.shape)
+            # print("preds_dict[0]['query_heatmap_score']", preds_dict[0]["query_heatmap_score"].shape)
+            # batch_score = torch.clamp(batch_score, min=1e-6)
+
+
             one_hot = F.one_hot(
                 self.query_labels, num_classes=self.num_classes
             ).permute(0, 2, 1)
             batch_score = batch_score * preds_dict[0]["query_heatmap_score"] * one_hot
+
 
             batch_center = preds_dict[0]["center"][..., -self.num_proposals :]
             batch_height = preds_dict[0]["height"][..., -self.num_proposals :]
             batch_dim = preds_dict[0]["dim"][..., -self.num_proposals :]
             batch_rot = preds_dict[0]["rot"][..., -self.num_proposals :]
             batch_vel = None
+
+            # batch_score  = preds_dict[0]["heatmap"]      # y hệt train
+            # batch_center = preds_dict[0]["center"]
+            # batch_height = preds_dict[0]["height"]
+            # batch_dim    = preds_dict[0]["dim"]
+            # batch_rot    = preds_dict[0]["rot"]
+            # batch_vel    = preds_dict[0].get("vel", None)
+
             if "vel" in preds_dict[0]:
                 batch_vel = preds_dict[0]["vel"][..., -self.num_proposals :]
 
+
+            pc_range = pc_range.squeeze().float()
             temp = self.bbox_coder.decode(
                 batch_score,
                 batch_rot,
@@ -810,8 +930,11 @@ class TransFusionHead(nn.Module):
                 batch_height,
                 batch_vel,
                 pc_range,
-                filter=True,
+                filter=False,
             )
+
+            # print("[TEST DBG] decoded bboxes per img:",
+            #     [temp[i]["bboxes"].shape[0] for i in range(len(temp))])
 
             if self.test_cfg["dataset"] == "nuScenes" or self.test_cfg["dataset"] == "tumtraf_nusc":
                 # self.tasks = [
@@ -894,7 +1017,9 @@ class TransFusionHead(nn.Module):
                 scores = temp[i]["scores"]
                 labels = temp[i]["labels"]
                 ## adopt circle nms for different categories
+
                 if self.test_cfg["nms_type"] != None:
+                    print("Using class-wise nms")
                     keep_mask = torch.zeros_like(scores)
                     for task in self.tasks:
                         task_mask = torch.zeros_like(scores)
@@ -944,7 +1069,9 @@ class TransFusionHead(nn.Module):
                         labels=labels[keep_mask],
                     )
                 else:  # no nms
+                    # print("No nms")
                     ret = dict(bboxes=boxes3d, scores=scores, labels=labels)
+                    # print("Results: ", ret)
                 ret_layer.append(ret)
             rets.append(ret_layer)
         assert len(rets) == 1

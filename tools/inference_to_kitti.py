@@ -143,6 +143,11 @@ def main() -> None:
 
     for data in tqdm(dataflow):
 
+        pcd = o3d.geometry.PointCloud()
+        o3dpoints = data["points"].data[0][0].cpu().numpy()
+        pcd.points = o3d.utility.Vector3dVector(o3dpoints[:, 1:4])
+        print(f"point cloud size: {len(pcd.points)} points")
+
         with torch.inference_mode():
             # torch.cuda.synchronize()
             t1 = time_synchronized()
@@ -151,6 +156,8 @@ def main() -> None:
             time_sum += t2 - t1
 
         out = outputs[0]
+
+        print(out)
 
         boxes = out["boxes_3d"].tensor.detach().cpu().numpy()  # expect [N,7] = [x,y,z,l,w,h,ry] in CAMERA coords
         if boxes.shape[1] > 7:
@@ -168,6 +175,10 @@ def main() -> None:
 
         lines = []
         for bb, sc, lb in zip(boxes, scores, labels):
+
+            # Filter by scores
+            if sc < 0.1:
+                continue
             x, y, z, l, w, h, ry = map(float, bb)
             # z += h / 2  # to center
             cls = CLASS_NAMES[int(lb)] if int(lb) < len(CLASS_NAMES) else str(int(lb))

@@ -190,30 +190,52 @@ def d3_box_overlap_kernel(boxes, qboxes, rinc, criterion=-1):
                 # else:
                 #     rinc[i, j] = 0.0
 
-                top1 = boxes[i, 2] + 0.5 * boxes[i, 4]
+                # Nếu 'location' hiện đang là TÂM (center) theo z:
+                top1 = boxes[i, 2] + 0.5 * boxes[i, 4]    # z + h/2
                 bot1 = boxes[i, 2] - 0.5 * boxes[i, 4]
-                top2 = qboxes[j, 2] + 0.5 * qboxes[j, 4]   # dùng qboxes[:,4] cho h  
+                top2 = qboxes[j, 2] + 0.5 * qboxes[j, 4]
                 bot2 = qboxes[j, 2] - 0.5 * qboxes[j, 4]
 
-                ih = top1 if top1 < top2 else top2
-                bh = bot1 if bot1 > bot2 else bot2
-                ih = ih - bh
-
+                ih = min(top1, top2) - max(bot1, bot2)
                 if ih > 0:
-                    area1 = boxes[i, 3] * boxes[i, 4] * boxes[i, 5]   # l*h*w
-                    area2 = qboxes[j, 3] * qboxes[j, 4] * qboxes[j, 5]
-                    inter_vol = ih * rinc[i, j]                       # rinc = BEV(XY) intersection area
+                    vol1 = boxes[i, 3] * boxes[i, 5] * boxes[i, 4]  # l*w*h
+                    vol2 = qboxes[j, 3] * qboxes[j, 5] * qboxes[j, 4]
+                    inter_vol = ih * rinc[i, j]                     # rinc là BEV(X,Y)
+                    
                     if criterion == -1:
-                        ua = area1 + area2 - inter_vol
+                        ua = vol1 + vol2 - inter_vol
                     elif criterion == 0:
-                        ua = area1
+                        ua = vol1
                     elif criterion == 1:
-                        ua = area2
+                        ua = vol2
                     else:
                         ua = inter_vol
                     rinc[i, j] = inter_vol / (ua + 1e-8)
                 else:
                     rinc[i, j] = 0.0
+
+                # top1 = boxes[i, 1]                      # y_top = y_bottom (trong KITTI y hướng xuống)
+                # bot1 = boxes[i, 1] - boxes[i, 4]        # y_bottom - h
+                # top2 = qboxes[j, 1]
+                # bot2 = qboxes[j, 1] - qboxes[j, 4]
+
+                # ih = min(top1, top2) - max(bot1, bot2)
+
+                # if ih > 0:
+                #     area1 = boxes[i, 3] * boxes[i, 4] * boxes[i, 5]   # l*h*w
+                #     area2 = qboxes[j, 3] * qboxes[j, 4] * qboxes[j, 5]
+                #     inter_vol = ih * rinc[i, j]                       # rinc = BEV(XY) intersection area
+                #     if criterion == -1:
+                #         ua = area1 + area2 - inter_vol
+                #     elif criterion == 0:
+                #         ua = area1
+                #     elif criterion == 1:
+                #         ua = area2
+                #     else:
+                #         ua = inter_vol
+                #     rinc[i, j] = inter_vol / (ua + 1e-8)
+                # else:
+                #     rinc[i, j] = 0.0
 
 
 def d3_box_overlap(boxes, qboxes, criterion=-1):
@@ -508,14 +530,14 @@ def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
             # print("============== 3d box overlap ================")
             loc = np.concatenate([a["location"] for a in gt_annos_part], 0)
             dims = np.concatenate([a["dimensions"] for a in gt_annos_part], 0)
-            # dims = dims[:, [2, 0, 1]]   # (h,w,l) -> (l,h,w)
+            dims = dims[:, [2, 0, 1]]   # (h,w,l) -> (l,h,w)
             rots = np.concatenate([a["rotation_y"] for a in gt_annos_part], 0)
             gt_boxes = np.concatenate(
                 [loc, dims, rots[..., np.newaxis]], axis=1)
             
             loc = np.concatenate([a["location"] for a in dt_annos_part], 0)
             dims = np.concatenate([a["dimensions"] for a in dt_annos_part], 0)
-            # dims = dims[:, [2, 0, 1]]   # (h,w,l) -> (l,h,w)
+            dims = dims[:, [2, 0, 1]]   # (h,w,l) -> (l,h,w)
             rots = np.concatenate([a["rotation_y"] for a in dt_annos_part], 0)
             dt_boxes = np.concatenate(
                 [loc, dims, rots[..., np.newaxis]], axis=1)
@@ -523,9 +545,15 @@ def calculate_iou_partly(gt_annos, dt_annos, metric, num_parts=50):
             overlap_part = d3_box_overlap(gt_boxes, dt_boxes).astype(
                 np.float64)
             
-            # print("gt_boxes", gt_boxes)
-            # print("dt_boxes", dt_boxes)
-            # print("overlap_part", overlap_part)
+            overlap_part = d3_box_overlap(gt_boxes.copy(), dt_boxes.copy()).astype(np.float64)
+            print("[DBG] 3D IoU stats: min=%.4f max=%.4f mean=%.4f" %
+                (overlap_part.min() if overlap_part.size else -1,
+                overlap_part.max() if overlap_part.size else -1,
+                overlap_part.mean() if overlap_part.size else -1))
+            
+            print("gt_boxes", gt_boxes)
+            print("dt_boxes", dt_boxes)
+            print("overlap_part", overlap_part)
         else:
             raise ValueError("unknown metric")
         
@@ -812,9 +840,9 @@ def get_official_eval_result(gt_annos, dt_annos, current_classes, PR_detail_dict
                             ], dtype=np.float32)
 
     overlap_0_5 = np.array([
-                            [0.5, 0.5, 0.5, 0.5, 0.25, 0.25],
-                            [0.5, 0.5, 0.5, 0.5, 0.25, 0.25],
-                            [0.5, 0.5, 0.5, 0.5, 0.25, 0.25],
+                            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],  # bbox IoU
+                            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],  # BEV  IoU
+                            [0.5, 0.5, 0.5, 0.5, 0.5, 0.5],  # 3D   IoU  
                         ], dtype=np.float32)
     
     # overlap_0_7 = np.array([ [0.1, 0.1, 0.1, 0.1, 0.1, 0.1], 
